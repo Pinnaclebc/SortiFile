@@ -1,0 +1,11 @@
+{
+  "watch_dir": "Watch_Folder",
+  "workspace_dir": "SortiFile_Workspace",
+  "confidence_threshold": 75,
+  "ollama_host": "http://127.0.0.1:11434",
+  "ollama_model": "llama3:8b",
+  "folder_colors": {},
+  "locked_folders": [],
+  "folder_order": [],
+  "is_first_run_completed": true
+}

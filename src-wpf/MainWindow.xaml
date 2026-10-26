@@ -1,0 +1,1278 @@
+<Window x:Class="SortiFileWpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SortiFileWpf"
+        mc:Ignorable="d"
+        Title="SortiFile"
+        Icon="Assets/SortiFile_Logo_PNG.png"
+        Height="840" Width="1320"
+        MinHeight="700" MinWidth="1080"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        FontFamily="{StaticResource IosFontFamily}"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+
+    <Window.Resources>
+        <!-- Tab Fade-In Transition (60 FPS Smooth) -->
+        <Storyboard x:Key="FadeInAnim">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.20">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="8" To="0" Duration="0:0:0.20">
+                <DoubleAnimation.EasingFunction>
+                    <QuadraticEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="68"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ==================== TOP TASKBAR (CENTERED NAVIGATION) ==================== -->
+        <Border Grid.Row="0" Background="#FBC305" BorderBrush="#E5AC00" BorderThickness="0,0,0,1" Padding="24,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: LOGO & APP TITLE -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="35" Height="35" CornerRadius="8" Margin="0,0,12,0" Background="#FBC305" BorderBrush="#CCA002" BorderThickness="1.5" Padding="0" ClipToBounds="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="1" Direction="270" Color="#000000" Opacity="0.10"/>
+                        </Border.Effect>
+                        <Image Source="Assets/SortiFile_Logo_PNG.png"
+                               Width="35" Height="35"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center">
+                            <Image.Clip>
+                                <RectangleGeometry Rect="0,0,35,35" RadiusX="7" RadiusY="7"/>
+                            </Image.Clip>
+                        </Image>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="SortiFile" FontSize="19" FontWeight="Bold" Foreground="#0F172A"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- TOP MIDDLE: CENTERED NAVIGATION PILL BAR (INTERACTABLE YELLOW ACCENT) -->
+                <Border Grid.Column="1" HorizontalAlignment="Center" Background="#E5AC00" CornerRadius="20" Padding="4" BorderBrush="#CCA002" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="NavDashboard" Style="{StaticResource TaskbarPillBtn}" Tag="Dashboard" Click="Nav_Click" Background="#451A03" Foreground="#FFFFFF" IsEnabled="False" Cursor="Arrow">
+                            <Button.Effect>
+                                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Direction="270" Color="#000000" Opacity="0.08"/>
+                            </Button.Effect>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📊" Margin="0,0,6,0" FontSize="13"/>
+                                <TextBlock Text="Dashboard" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="NavFolders" Style="{StaticResource TaskbarPillBtn}" Tag="Folders" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource FolderSymbolGeo}"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Width="15" Height="15"
+                                      Stretch="Uniform"
+                                      Margin="0,0,7,0"
+                                      VerticalAlignment="Center"/>
+                                <TextBlock Text="Folders" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="NavHistory" Style="{StaticResource TaskbarPillBtn}" Tag="History" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource ClockIconGeo}"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Width="15" Height="15"
+                                      Stretch="Uniform"
+                                      Margin="0,0,7,0"
+                                      VerticalAlignment="Center"/>
+                                <TextBlock Text="Sort History" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button x:Name="NavSettings" Style="{StaticResource TaskbarPillBtn}" Tag="Settings" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource MaintenanceIconGeo}"
+                                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                      Width="15" Height="15"
+                                      Stretch="Uniform"
+                                      Margin="0,0,7,0"
+                                      VerticalAlignment="Center"/>
+                                <TextBlock Text="Settings" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- RIGHT: STATUS & QUICK ACTIONS -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border x:Name="PillOllama" Background="#E5AC00" BorderBrush="#CCA002" BorderThickness="1" CornerRadius="14" Padding="10,5" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="DotOllama" Width="8" Height="8" Fill="#F59E0B" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="TxtOllama" Text="Ollama: Fallback Mode" FontSize="11" FontWeight="Bold" Foreground="#451A03"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="Scan Incoming" Style="{StaticResource ModernBtn}" Background="#FFFFFF" Foreground="#0F172A" BorderBrush="#CCA002" Margin="0,0,8,0" Click="Scan_Click"/>
+                    <Button x:Name="BtnUndoLast" Content="Undo Last" Style="{StaticResource ModernBtn}" Background="#FFFFFF" Foreground="#0F172A" BorderBrush="#CCA002" Click="UndoLast_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== MAIN VIEWPORT ==================== -->
+        <Grid Grid.Row="1" Margin="24,18,24,20">
+
+            <!-- ======================================================== -->
+            <!-- TAB 1: DASHBOARD (80% DRAG & DROP LEFT + RIGHT CHANGELOG/GITHUB) -->
+            <!-- ======================================================== -->
+            <Grid x:Name="ViewDashboard">
+                <Grid.RenderTransform>
+                    <TranslateTransform/>
+                </Grid.RenderTransform>
+
+                <Grid.ColumnDefinitions>
+                    <!-- Left: 80% Drop Area & Summary Stats -->
+                    <ColumnDefinition Width="3.8*"/>
+                    <!-- Right: 20% Software Changelogs & GitHub Link -->
+                    <ColumnDefinition Width="1.2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT SIDE (80%): FULL-HEIGHT LIQUID GLASS DRAG & DROP ZONE -->
+                <Border Grid.Column="0"
+                        x:Name="DropZone"
+                        Background="#FFFFFF"
+                        CornerRadius="16"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="2"
+                        Padding="36"
+                        Margin="0,0,18,0"
+                            AllowDrop="True"
+                            DragEnter="DropZone_DragEnter"
+                            DragLeave="DropZone_DragLeave"
+                            Drop="DropZone_Drop"
+                            MouseDown="DropZone_Click"
+                            Cursor="Hand"
+                            Effect="{StaticResource CardShadow}">
+                        <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <StackPanel HorizontalAlignment="Center" MaxWidth="620">
+                                <!-- Center Graphic with Exactly Pure White Background & Shadow -->
+                                <Border Width="88" Height="88" CornerRadius="26" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" HorizontalAlignment="Center" Margin="0,0,0,20">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="18" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.10"/>
+                                    </Border.Effect>
+                                    <Path Data="{StaticResource FileDocGeo}"
+                                          Fill="#FBC305"
+                                          Width="44" Height="44"
+                                          Stretch="Uniform"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
+                                </Border>
+
+                                <TextBlock Text="Drag &amp; Drop Any Files Here"
+                                           FontSize="24"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+
+                                <TextBlock Text="SortiFile automatically detects, reads, and organizes your files into the right folder using local AI. No files leave your device."
+                                           FontSize="13"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           LineHeight="20"
+                                           Margin="0,10,0,20"/>
+
+                                <!-- Click to Browse Pill -->
+                                <Border Background="#FEF9C3" CornerRadius="20" Padding="18,8" HorizontalAlignment="Center" Margin="0,0,0,22">
+                                    <TextBlock Text="or click anywhere inside this box to browse files"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#92400E"/>
+                                </Border>
+
+                                <!-- Supported File Categories -->
+                                <WrapPanel HorizontalAlignment="Center">
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,5" Margin="4">
+                                        <TextBlock Text="📄 Documents (.docx, .txt)" FontSize="11" FontWeight="SemiBold" Foreground="#475569"/>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,5" Margin="4">
+                                        <TextBlock Text="📕 PDF Papers" FontSize="11" FontWeight="SemiBold" Foreground="#475569"/>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,5" Margin="4">
+                                        <TextBlock Text="📊 Tables (.csv, .tsv)" FontSize="11" FontWeight="SemiBold" Foreground="#475569"/>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,5" Margin="4">
+                                        <TextBlock Text="🖼️ Images &amp; Media" FontSize="11" FontWeight="SemiBold" Foreground="#475569"/>
+                                    </Border>
+                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,5" Margin="4">
+                                        <TextBlock Text="📦 Archives (.zip)" FontSize="11" FontWeight="SemiBold" Foreground="#475569"/>
+                                    </Border>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Grid>
+                </Border>
+
+                <!-- RIGHT SIDE (20%): SOFTWARE CHANGELOGS & GITHUB REPO LINK -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <!-- Changelogs Card -->
+                        <RowDefinition Height="*"/>
+                        <!-- GitHub Link Card -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- SOFTWARE CHANGELOGS CARD -->
+                    <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,0,16" Effect="{StaticResource CardShadow}">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,14">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
+                                            <TextBlock Text="v2.9.6" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Margin="16,14">
+                                    <TextBlock Text="✨ What's New in v2.9.6" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+
+                                    <!-- Changelog Item 1 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🛡️ Real-Time Undo Sync on File Deletion" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Deleting a sorted file (in-app or via File Explorer) now immediately updates the audit log and un-highlights/disables the Undo Last and row-level Undo buttons." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 2 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Disk-Verified Undo State Engine" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="The Undo engine actively verifies physical file presence on disk, preventing phantom highlighted Undo buttons when target files no longer exist." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="✏️ Synchronized File Rename Tracking" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Renaming a file in the directory viewer keeps its corresponding sort history record synced, preserving valid undo capability after renames." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🗄️ Workspace Directory in Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Setup Wizard now includes a dedicated Workspace step to choose where organized files live (SortiFile_Workspace, Documents, or Custom folder)." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 2 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🗂️ Initial Folders &amp; Context Scaffolding" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Configure starter target folders and customize .context.md AI classification descriptions directly during setup, with a 1-click option to skip and use recommended defaults." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="↺ Reset Directory Paths in Settings" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Removed redundant setup wizard card from Settings and added an instant 'Reset to Defaults' action with confirmation dialog to revert paths." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="📐 Setup Wizard Full Card Layout &amp; Auto-Scroll" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Expanded wizard dialog dimensions, optimized vertical padding, and integrated an adaptive scroll viewer so bottom cards are never cut off on any DPI scaling." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 2 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="⚡ Auto-Dismissing Clean Notification Toasts" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Setup completion and clipboard paste toasts now appear with clean icons, without progress bars, and automatically fade out after a few seconds." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="📂 Streamlined Files in Folder View" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Removed the redundant file count badge from the 'Files in Folder' header for a cleaner, distraction-free directory viewer." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="💛 Full-Window Solid Yellow Backdrop" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="When the setup wizard opens, the entire background window is covered in clean brand yellow (#FBC305), concealing background elements until setup completes." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 2 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🧭 Clickable Steps &amp; Docked Navigation" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Wizard step pills at the top are now fully interactive clickable tabs. Added dedicated Back and Next navigation buttons anchored at the bottom of the popup." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Instant Reset Testing Script" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Created reset_app.py to wipe settings and database with one command, instantly launching a fresh first-time setup experience for testing." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🧙‍♂️ First-Time Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Guided 3-step setup to choose/create incoming Watch Folder (Default, Downloads, or Custom). Re-launchable anytime from Settings." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 5 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🖼️ Edge-to-Edge Logo Frame Alignment" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                            <TextBlock Text="Refined border frame and corner clipping geometry to 32x32 inner bounds so the logo seamlessly fills the inward border with zero margin gap." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🛡️ Smart Missing File Undo Handling" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="When a file has been deleted or moved outside SortiFile, undo is immediately disabled and notifies the user with a descriptive dialog." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="📂 Clean Folder Overview Header" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Removed the duplicate small folder name underneath the primary title on the folder overview card." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 5 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🏷️ Streamlined App Title" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                            <TextBlock Text="Cleaned top-left taskbar branding to showcase just the bold 'SortiFile' title." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 1 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🎨 Neutral Canvas &amp; Deep Amber Tab" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Reverted canvas to clean neutral (#F6F8FA). Active taskbar tab pill restyled to deep amber (#451A03) with high-contrast white text." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 2 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="✨ Inward Yellow Logo Border" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Seamless logo styling with inward matching yellow border outline, eliminating any white border rings." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 3 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="📐 Full-Height Drag &amp; Drop Area" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Removed redundant metric cards to maximize drop zone workspace; real-time sorting progress tracked via the floating progress card." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 4 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="📋 Sort History Column Headers" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Added structured table header row with column titles (File Name, Target Folder, Confidence, AI Reasoning, Time, Action)." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 5 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🔄 Dynamic Undo Button State" FontSize="11" FontWeight="Bold" Foreground="#F59E0B"/>
+                                            <TextBlock Text="Undo Last button automatically disables and dims with faded opacity when no reversible moves are available." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 6 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🎬 MP4 Video Thumbnail Extraction" FontSize="11" FontWeight="Bold" Foreground="#DC2626"/>
+                                            <TextBlock Text="Integrated native DirectShow/MediaFoundation frame grabber for video files, overcoming missing Windows Shell video thumbnail handlers." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Changelog Item 7 -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🔗 iOS 26 Share Vector Icon" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                            <TextBlock Text="Updated GitHub repository link card with official iOS-26 liquid-glass share vector geometry." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- GITHUB REPOSITORY CARD -->
+                    <Border Grid.Row="1" Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="16,14" Effect="{StaticResource CardShadow}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,6">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource ShareIconGeo}"
+                                          Fill="{StaticResource AccentBrush}"
+                                          Width="16" Height="16"
+                                          Stretch="Uniform"
+                                          Margin="0,0,8,0"
+                                          VerticalAlignment="Center"/>
+                                    <TextBlock Text="GitHub Repository" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="SortiFile is open source and privacy-first. Star the project, explore the codebase, or contribute." FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" LineHeight="16" Margin="0,0,0,12"/>
+                            <Button Content="View on GitHub ↗" Style="{StaticResource ModernBtn}" Click="OpenGithub_Click" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ======================================================== -->
+            <!-- TAB 2: TARGET FOLDERS (SIDEBAR TREE + LIQUID GLASS ICONS) -->
+            <!-- ======================================================== -->
+            <Grid x:Name="ViewFolders" Visibility="Collapsed">
+                <Grid.RenderTransform>
+                    <TranslateTransform/>
+                </Grid.RenderTransform>
+
+                <Grid.ColumnDefinitions>
+                    <!-- Folder Tree Sidebar: 270px -->
+                    <ColumnDefinition Width="270"/>
+                    <!-- Main Section: Big Folder Icons & File List View -->
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT SUB-SIDEBAR: FOLDER TREE LAYOUT -->
+                <Border Grid.Column="0" Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,16,0" Effect="{StaticResource CardShadow}">
+                    <DockPanel LastChildFill="True">
+                        <!-- Top Header with + New Folder Button -->
+                        <Border DockPanel.Dock="Top" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="16,14">
+                            <Grid>
+                                <TextBlock Text="Folder Tree" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <Button Content="+ New" Style="{StaticResource PrimaryBtn}" Padding="10,4" FontSize="11" HorizontalAlignment="Right" Click="AddFolder_Click"/>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="10,8">
+                                <ItemsControl x:Name="ListFolderTree">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- Container with Drop Line Indicators for Drag & Drop Reordering -->
+                                            <Grid Margin="{Binding TreeIndentMargin}" Visibility="{Binding TreeItemVisibility}">
+                                                <!-- Top Drop Indicator Line (Horizontal brand gold line) -->
+                                                <Rectangle Height="3" Fill="#FBC305" RadiusX="1.5" RadiusY="1.5"
+                                                           VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="2,-2,2,0"
+                                                           Panel.ZIndex="10"
+                                                           Visibility="{Binding DragOverTopIndicatorVisibility}"/>
+
+                                                <!-- Clickable Tree Item with Connecting Branch Lines, Drag & Drop Reordering, & Lock Indicator -->
+                                                <Border Background="{Binding SelectionBackgroundBrush}"
+                                                        BorderBrush="{Binding SelectionBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="8"
+                                                        Padding="6,6"
+                                                        Cursor="Hand"
+                                                        MouseDown="FolderItem_Click"
+                                                        MouseRightButtonUp="FolderItem_MouseRightButtonUp"
+                                                        PreviewMouseLeftButtonDown="TreeItem_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseMove="TreeItem_PreviewMouseMove"
+                                                        AllowDrop="True"
+                                                        DragOver="TreeItem_DragOver"
+                                                        DragLeave="TreeItem_DragLeave"
+                                                        Drop="TreeItem_Drop"
+                                                        Tag="{Binding}">
+                                                    <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <!-- Column 0: Visual tree connector branch line -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 1: Vertical accent bar for active folder -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 2: Close/Open Chevron Toggle Button -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 3: Colored Folder Indicator Dot -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 4: Folder Name -->
+                                                        <ColumnDefinition Width="*"/>
+                                                        <!-- Column 5: Lock Icon Badge -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 6: Count Badge -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Column 7: Triple Dot Options Button -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Tree Connector Lines for Sub-folders -->
+                                                    <Canvas Grid.Column="0"
+                                                            Width="18"
+                                                            Height="20"
+                                                            Margin="0,0,2,0"
+                                                            Visibility="{Binding ConnectorVisibility}"
+                                                            VerticalAlignment="Center">
+                                                        <!-- Vertical connecting line from parent -->
+                                                        <Line X1="4" Y1="-6" X2="4" Y2="10" Stroke="#94A3B8" StrokeThickness="1.5"/>
+                                                        <!-- Vertical extension line downwards if more siblings exist -->
+                                                        <Line X1="4" Y1="10" X2="4" Y2="26" Stroke="#94A3B8" StrokeThickness="1.5" Visibility="{Binding HasSiblingBelowVisibility}"/>
+                                                        <!-- Horizontal branch elbow pointing to child folder -->
+                                                        <Line X1="4" Y1="10" X2="16" Y2="10" Stroke="#94A3B8" StrokeThickness="1.5"/>
+                                                    </Canvas>
+
+                                                    <!-- Vertical Accent Bar for Active Selected Folder (Brand Gold) -->
+                                                    <Rectangle Grid.Column="1"
+                                                               Width="3.5"
+                                                               Height="18"
+                                                               RadiusX="1.75"
+                                                               RadiusY="1.75"
+                                                               Fill="#FBC305"
+                                                               Margin="0,0,6,0"
+                                                               VerticalAlignment="Center"
+                                                               Visibility="{Binding ActiveBarVisibility}"/>
+
+                                                    <!-- Close / Open Chevron Button for folders with sub-folders (No square hover highlight) -->
+                                                    <Button Grid.Column="2"
+                                                            Content="{Binding ChevronIcon}"
+                                                            Visibility="{Binding ChevronVisibility}"
+                                                            Width="18" Height="18"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            FontSize="10"
+                                                            FontWeight="Bold"
+                                                            Foreground="#64748B"
+                                                            Cursor="Hand"
+                                                            Click="ToggleFolderExpand_Click"
+                                                            Tag="{Binding}"
+                                                            Margin="0,0,4,0"
+                                                            VerticalAlignment="Center">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="Transparent" SnapsToDevicePixels="True">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Foreground" Value="#0F172A"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+
+                                                    <!-- Colored Folder Dot / Icon -->
+                                                    <Ellipse Grid.Column="3" Width="10" Height="10" Fill="{Binding ColorBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                                                    <!-- Folder Name -->
+                                                    <TextBlock Grid.Column="4" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+
+                                                    <!-- Lock Indicator Badge (Tool tip explains auto-organizing exemption) -->
+                                                    <TextBlock Grid.Column="5"
+                                                               Text="{Binding LockIcon}"
+                                                               ToolTip="{Binding LockTooltip}"
+                                                               FontSize="10"
+                                                               Margin="4,0,2,0"
+                                                               VerticalAlignment="Center"/>
+
+                                                    <!-- Count Badge (excluding .context.md) -->
+                                                    <Border Grid.Column="6" Background="#F1F5F9" CornerRadius="10" Padding="8,2" Margin="6,0,0,0">
+                                                        <TextBlock Text="{Binding CountBadge}" FontSize="10" FontWeight="Bold" Foreground="#475569"/>
+                                                    </Border>
+
+                                                    <!-- Triple Dot Options Button -->
+                                                    <Button Grid.Column="7"
+                                                            ToolTip="Folder Options"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Padding="4,1"
+                                                            Margin="4,0,0,0"
+                                                            Cursor="Hand"
+                                                            Click="FolderOptions_Click"
+                                                            Tag="{Binding}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="5,2" SnapsToDevicePixels="True">
+                                                                    <TextBlock x:Name="Dots" Text="•••" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/>
+                                                                        <Setter TargetName="Dots" Property="Foreground" Value="#0F172A"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Bottom Drop Indicator Line (Horizontal brand gold line) -->
+                                            <Rectangle Height="3" Fill="#FBC305" RadiusX="1.5" RadiusY="1.5"
+                                                       VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Margin="2,0,2,-2"
+                                                       Panel.ZIndex="10"
+                                                       Visibility="{Binding DragOverBottomIndicatorVisibility}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
+                <!-- RIGHT MAIN SECTION: SELECTED FOLDER OVERVIEW & FULL FILE CONTENTS -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <!-- Top: Selected Folder Overview & Taxonomy Control Center -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Bottom: Folder File Contents (takes up all remaining space) -->
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- TOP: SELECTED FOLDER OVERVIEW & CONTROL CENTER -->
+                    <Border Grid.Row="0"
+                            Background="#FFFFFF"
+                            CornerRadius="14"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            Padding="20,16"
+                            Margin="0,0,0,16"
+                            Effect="{StaticResource CardShadow}">
+                        <StackPanel>
+                            <!-- Folder Identity & Top Action Buttons -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Folder Color Icon Badge -->
+                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="12" Background="#FBC305" x:Name="BadgeFolderOverview" Margin="0,0,14,0" VerticalAlignment="Center">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.15"/>
+                                    </Border.Effect>
+                                    <Path Data="{StaticResource FolderSymbolGeo}" Fill="#FFFFFF" Width="24" Height="24" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Folder Name & Count Badge -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtOverviewFolderName" Text="Documents" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <Border Background="#F1F5F9" CornerRadius="10" Padding="8,2" Margin="10,0,0,0">
+                                        <TextBlock x:Name="TxtOverviewCountBadge" Text="0 files" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Action Buttons: Open, Lock, Duplicate, Rename, Delete -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="📂 Open" Style="{StaticResource ModernBtn}" Margin="0,0,6,0" Click="OverviewOpenExplorer_Click" ToolTip="Open folder in Windows File Explorer"/>
+                                    <Button x:Name="BtnOverviewLock" Content="🔓 Lock Folder" Style="{StaticResource ModernBtn}" Margin="0,0,6,0" Click="OverviewToggleLock_Click" ToolTip="Lock this folder to exclude it from automatic AI organizing (can still be dragged &amp; reordered)"/>
+                                    <Button Content="📋 Duplicate" Style="{StaticResource ModernBtn}" Margin="0,0,6,0" Click="OverviewDuplicate_Click" ToolTip="Duplicate this folder &amp; context"/>
+                                    <Button Content="✏️ Rename" Style="{StaticResource ModernBtn}" Margin="0,0,6,0" Click="OverviewRename_Click" ToolTip="Rename this folder"/>
+                                    <Button x:Name="BtnOverviewDelete" Content="🗑️ Delete" Style="{StaticResource ModernBtn}" Foreground="#DC2626" Click="OverviewDelete_Click" ToolTip="Delete folder and migrate files to Inbox"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Separator Background="{StaticResource BorderBrush}" Margin="0,0,0,12"/>
+
+                            <!-- Two Columns: Color Selector & Context Prompt Editor -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Left: Changeable Color Swatches -->
+                                <StackPanel Grid.Column="0" Margin="0,0,18,0">
+                                    <TextBlock Text="FOLDER COLOR THEME" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                                    <WrapPanel x:Name="PanelOverviewColors" Margin="0,0,0,4">
+                                        <!-- Color swatches populated in code-behind -->
+                                    </WrapPanel>
+                                    <TextBlock Text="Click any swatch to change this folder's color theme." FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                </StackPanel>
+
+                                <!-- Right: .context.md AI Taxonomy Editor -->
+                                <StackPanel Grid.Column="1">
+                                    <Grid Margin="0,0,0,6">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="AI TAXONOMY CONTEXT (.context.md)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="— Local AI uses this description to classify files" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="6,0,0,0"/>
+                                        </StackPanel>
+                                        <Button Content="Save Context Prompt" Style="{StaticResource PrimaryBtn}" Padding="10,3" FontSize="11" HorizontalAlignment="Right" Click="OverviewSaveContext_Click"/>
+                                    </Grid>
+                                    <TextBox x:Name="TxtOverviewContext"
+                                             Height="64"
+                                             FontSize="11"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto"
+                                             Padding="8,6"
+                                             BorderBrush="{StaticResource BorderBrush}"
+                                             Background="#F8FAFC"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- BOTTOM: LARGE VIEW OF FILES WITHIN SELECTED FOLDER (FULL HEIGHT) -->
+                    <Border Grid.Row="1" Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}">
+                        <DockPanel LastChildFill="True">
+                            <!-- Files Header Toolbar -->
+                            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="18,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Files in Folder" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="TxtSelectedFolderCount" Visibility="Collapsed"/>
+
+                                        <!-- Paste Button (Always accessible to paste files into active folder) -->
+                                        <Button x:Name="BtnToolbarPaste" Content="📋 Paste" Style="{StaticResource ModernBtn}" Padding="8,3" FontSize="11" Margin="10,0,0,0" Click="ToolbarFilePaste_Click" ToolTip="Paste copied file(s) from clipboard into this folder (Ctrl+V)"/>
+
+                                        <!-- Selected File Actions Toolbar -->
+                                        <StackPanel x:Name="PanelFileActions" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0" Visibility="Collapsed">
+                                            <Separator Style="{x:Null}" Background="#CBD5E1" Width="1" Height="16" Margin="0,0,10,0"/>
+                                            <Button x:Name="BtnToolbarOpen" Content="📂 Open" Style="{StaticResource ModernBtn}" Padding="8,3" FontSize="11" Margin="0,0,4,0" Click="ToolbarFileOpen_Click" ToolTip="Open file with default application"/>
+                                            <Button x:Name="BtnToolbarReveal" Content="🔍 Reveal" Style="{StaticResource ModernBtn}" Padding="8,3" FontSize="11" Margin="0,0,4,0" Click="ToolbarFileReveal_Click" ToolTip="Reveal file in Windows File Explorer"/>
+                                            <Button x:Name="BtnToolbarCopy" Content="📋 Copy" Style="{StaticResource ModernBtn}" Padding="8,3" FontSize="11" Margin="0,0,4,0" Click="ToolbarFileCopy_Click" ToolTip="Copy file(s) to clipboard (Ctrl+C)"/>
+                                            <Button x:Name="BtnToolbarRename" Content="✏️ Rename" Style="{StaticResource ModernBtn}" Padding="8,3" FontSize="11" Margin="0,0,4,0" Click="ToolbarFileRename_Click" ToolTip="Rename selected file"/>
+                                            <Button x:Name="BtnToolbarDelete" Content="🗑️ Delete" Style="{StaticResource ModernBtn}" Foreground="#DC2626" Padding="8,3" FontSize="11" Click="ToolbarFileDelete_Click" ToolTip="Delete selected file(s) (Del)"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Toggleable Path Bar with Copy -->
+                                    <Border x:Name="BorderSelectedPath" Grid.Column="1" Visibility="Collapsed" Background="#F1F5F9" CornerRadius="6" Padding="8,4" Margin="14,0" HorizontalAlignment="Stretch">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="📍 " FontSize="10" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="TxtSelectedFolderPath" Grid.Column="1" Text="SortiFile_Workspace\Documents" FontFamily="Consolas" FontSize="11" Foreground="#334155" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="2" Content="Copy Path" Style="{StaticResource ModernBtn}" Padding="6,2" FontSize="10" Click="CopySelectedPath_Click"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Toggle Path Button -->
+                                    <Button x:Name="BtnTogglePath" Grid.Column="2" Content="📍 Show Path" Style="{StaticResource ModernBtn}" Padding="10,4" FontSize="11" Click="TogglePath_Click" ToolTip="Toggle folder path bar"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Large View of Files with Thumbnails, SVG Backup Icons, & Drag-to-Select -->
+                            <ScrollViewer x:Name="ScrollFolderFiles" Background="Transparent" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <Grid x:Name="FilesSelectionArea" Background="Transparent"
+                                      PreviewMouseLeftButtonDown="FilesArea_PreviewMouseLeftButtonDown"
+                                      PreviewMouseMove="FilesArea_PreviewMouseMove"
+                                      PreviewMouseLeftButtonUp="FilesArea_PreviewMouseLeftButtonUp"
+                                      PreviewMouseRightButtonDown="FilesArea_PreviewMouseRightButtonDown"
+                                      LostMouseCapture="FilesArea_LostMouseCapture">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu Closed="FilesContextMenu_Closed">
+                                            <MenuItem Header="📋 Paste File(s)" Click="ToolbarFilePaste_Click" InputGestureText="Ctrl+V"/>
+                                            <MenuItem Header="🔄 Refresh Folder" Click="RefreshCurrentFolderFiles_Click" InputGestureText="F5"/>
+                                            <Separator/>
+                                            <MenuItem Header="📂 Open Folder in Explorer" Click="OverviewOpenExplorer_Click"/>
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                    <StackPanel Margin="16,12">
+                                        <ItemsControl x:Name="ListSelectedFiles">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="155"
+                                                            Height="180"
+                                                            Background="{Binding CardBackgroundBrush}"
+                                                            BorderBrush="{Binding CardBorderBrush}"
+                                                            BorderThickness="1.5"
+                                                            CornerRadius="12"
+                                                            Margin="6"
+                                                            Cursor="Hand"
+                                                            MouseDown="FileCard_MouseDown"
+                                                            Tag="{Binding}">
+                                                        <Border.ContextMenu>
+                                                            <ContextMenu Closed="FilesContextMenu_Closed">
+                                                                <MenuItem Header="📂 Open" Click="ContextFileOpen_Click"/>
+                                                                <MenuItem Header="🔍 Reveal in Explorer" Click="ContextFileReveal_Click"/>
+                                                                <MenuItem Header="📋 Copy File" Click="ContextFileCopy_Click" InputGestureText="Ctrl+C"/>
+                                                                <MenuItem Header="📋 Paste" Click="ToolbarFilePaste_Click" InputGestureText="Ctrl+V"/>
+                                                                <MenuItem Header="✏️ Rename" Click="ContextFileRename_Click"/>
+                                                                <Separator/>
+                                                                <MenuItem Header="🗑️ Delete" Click="ContextFileDelete_Click" Foreground="#DC2626" InputGestureText="Del"/>
+                                                            </ContextMenu>
+                                                        </Border.ContextMenu>
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="110"/>
+                                                                <RowDefinition Height="*"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- Top Thumbnail / Preview Box with Perfectly Rounded Image -->
+                                                            <Border Grid.Row="0" Background="#F1F5F9" CornerRadius="10.5,10.5,0,0">
+                                                                <Grid>
+                                                                    <!-- Rounded Image / Video Frame Thumbnail Preview with NO corner overflow -->
+                                                                    <Border CornerRadius="10.5,10.5,0,0"
+                                                                            Visibility="{Binding ThumbnailVisibility}">
+                                                                        <Border.Background>
+                                                                            <ImageBrush ImageSource="{Binding ThumbnailSource}" Stretch="UniformToFill"/>
+                                                                        </Border.Background>
+                                                                    </Border>
+
+                                                                    <!-- Backup Vector Icon when no thumbnail available -->
+                                                                    <Path Data="{Binding BackupIconGeometry}"
+                                                                          Fill="{Binding BackupIconBrush}"
+                                                                          Width="44" Height="44"
+                                                                          Stretch="Uniform"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center"
+                                                                          Visibility="{Binding BackupIconVisibility}"/>
+
+                                                                    <!-- File Extension Pill in Top Right -->
+                                                                    <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                            Background="#E2E8F0" CornerRadius="5"
+                                                                            Padding="6,2" Margin="6">
+                                                                        <TextBlock Text="{Binding Extension}" FontSize="9" FontWeight="Bold" Foreground="#334155"/>
+                                                                    </Border>
+                                                                </Grid>
+                                                            </Border>
+
+                                                            <!-- Bottom File Meta Details -->
+                                                            <StackPanel Grid.Row="1" Margin="8,6" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding FileName}"
+                                                                           FontSize="11"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           ToolTip="{Binding FileName}"
+                                                                           Margin="0,0,0,2"/>
+                                                                <Grid>
+                                                                    <TextBlock Text="{Binding SizeDisplay}" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Left"/>
+                                                                    <TextBlock Text="{Binding ModifiedDisplay}" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right"/>
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Empty Folder Placeholder -->
+                                        <TextBlock x:Name="TxtEmptyFolderFiles" Text="This folder is empty. Drag files onto the Dashboard to sort them here." FontSize="12" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,36"/>
+                                    </StackPanel>
+
+                                    <!-- Selection Marquee / Rubber-band Canvas -->
+                                    <Canvas x:Name="CanvasMarquee" IsHitTestVisible="False">
+                                        <Border x:Name="RubberBand"
+                                                Background="#25FBC305"
+                                                BorderBrush="#FBC305"
+                                                BorderThickness="1.5"
+                                                CornerRadius="4"
+                                                Visibility="Collapsed"/>
+                                    </Canvas>
+                                </Grid>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ======================================================== -->
+            <!-- TAB 3: FULL SORT HISTORY -->
+            <!-- ======================================================== -->
+            <ScrollViewer x:Name="ViewHistory" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.RenderTransform>
+                    <TranslateTransform/>
+                </ScrollViewer.RenderTransform>
+                <Border Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Effect="{StaticResource CardShadow}">
+                    <StackPanel>
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,16">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Full Action Audit Log" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="Complete history of automated file moves saved to sort_history.json. Click Undo to restore any file." FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Sort History Table Column Headers -->
+                        <Border Background="#F1F5F9" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,9" Margin="16,14,16,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="3*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="FILE NAME" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Column="1" Text="TARGET FOLDER" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Column="2" Text="CONFIDENCE" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Column="3" Text="AI REASONING / NOTE" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Column="4" Text="TIME" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Grid.Column="5" Text="ACTION" FontSize="10" FontWeight="Bold" Foreground="#64748B" Width="60" TextAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <ItemsControl x:Name="ListFullHistory" Margin="16,8,16,14">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="3*"/>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding TargetFolder}" FontSize="11" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding ConfidenceScore, StringFormat='{}{0}%'}" FontSize="11" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Reasoning}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding TimeFormatted}" FontSize="11" Foreground="#94A3B8" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="5" Content="Undo" Style="{StaticResource ModernBtn}" Tag="{Binding Id}" Click="UndoItem_Click" IsEnabled="{Binding IsMoved}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+
+            <!-- ======================================================== -->
+            <!-- TAB 4: SETTINGS & DIRECTORY PATHS -->
+            <!-- ======================================================== -->
+            <ScrollViewer x:Name="ViewSettings" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer.RenderTransform>
+                    <TranslateTransform/>
+                </ScrollViewer.RenderTransform>
+                <StackPanel>
+                    <!-- Directory Configuration Card -->
+                    <Border Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="24" Margin="0,0,0,16" Effect="{StaticResource CardShadow}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Directory Configuration" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Content="↺ Reset to Defaults" Style="{StaticResource ModernBtn}" FontSize="11" Click="ResetDirectories_Click" ToolTip="Reset Watch and Workspace paths to default directories"/>
+                            </Grid>
+
+                            <TextBlock Text="Watch Directory (Monitored by native FileSystemWatcher):" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Read-only path viewer pill -->
+                                <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📍 " FontSize="11" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="TxtWatchDir" Grid.Column="1" Text="Incoming" FontFamily="Consolas" FontSize="11" Foreground="#334155" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <!-- Action buttons -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <Button Content="Change Folder..." Style="{StaticResource ModernBtn}" Click="ChangeWatchDir_Click" ToolTip="Select a new incoming watch folder"/>
+                                    <Button Content="📂 Open" Style="{StaticResource ModernBtn}" Tag="{Binding ElementName=TxtWatchDir, Path=Text}" Click="OpenExplorer_Click" Margin="6,0,0,0" ToolTip="Open folder in File Explorer"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <TextBlock Text="Workspace Directory (Target folders destination):" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Read-only path viewer pill -->
+                                <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="📍 " FontSize="11" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="TxtWorkspaceDir" Grid.Column="1" Text="SortiFile_Workspace" FontFamily="Consolas" FontSize="11" Foreground="#334155" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <!-- Action buttons -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <Button Content="Change Folder..." Style="{StaticResource ModernBtn}" Click="ChangeWorkspaceDir_Click" ToolTip="Select a new workspace destination folder"/>
+                                    <Button Content="📂 Open" Style="{StaticResource ModernBtn}" Tag="{Binding ElementName=TxtWorkspaceDir, Path=Text}" Click="OpenExplorer_Click" Margin="6,0,0,0" ToolTip="Open workspace in File Explorer"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Reset Directories Option Card -->
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,10,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="↺ Reset Directory Paths to Default" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <TextBlock Text="Reverts Incoming Watch Directory to 'Watch_Folder' and Workspace to 'SortiFile_Workspace'." FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Reset Directories" Style="{StaticResource ModernBtn}" FontSize="11" Padding="14,6" Click="ResetDirectories_Click" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Local LLM Engine Card -->
+                    <Border Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="24" Margin="0,0,0,16" Effect="{StaticResource CardShadow}">
+                        <StackPanel>
+                            <TextBlock Text="Local AI Engine (Ollama)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6"/>
+                            <TextBlock Text="SortiFile connects to your local Ollama instance for private on-device intelligence." FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,14"/>
+
+                            <!-- TUTORIAL CLICKABLE TEXT -->
+                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,16" Cursor="Hand" MouseDown="ShowOllamaTutorial_Click">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="💡" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="How to install a local AI model &amp; configure Ollama (Step-by-step tutorial)" FontSize="11" FontWeight="SemiBold" Foreground="#1D4ED8" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="Open Guide ↗" FontSize="11" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Text="Ollama Host URL:" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtOllamaHost" Grid.Column="0" Height="34" FontSize="12" Padding="8,6" BorderBrush="{StaticResource BorderBrush}"/>
+                                <Button Grid.Column="1" Content="Test Connection" Style="{StaticResource PrimaryBtn}" Click="TestOllama_Click" Margin="8,0,0,0"/>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Modern Custom Styled ComboBox (Replaces default Windows ComboBox) -->
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Target Model:" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="ComboModel" Style="{StaticResource ModernComboBox}" Height="36">
+                                        <ComboBoxItem Content="llama3:8b" IsSelected="True"/>
+                                        <ComboBoxItem Content="llama3:latest"/>
+                                        <ComboBoxItem Content="qwen2.5:7b"/>
+                                        <ComboBoxItem Content="qwen:7b"/>
+                                        <ComboBoxItem Content="mistral:latest"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <Grid Margin="0,0,0,4">
+                                        <TextBlock Text="Routing Confidence Threshold:" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock x:Name="TxtThresholdVal" Text="75%" FontSize="11" FontWeight="Bold" Foreground="#2563EB" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                    <Slider x:Name="SliderThreshold" Minimum="50" Maximum="95" Value="75" TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="0,6,0,0" ValueChanged="SliderThreshold_ValueChanged"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Button Content="Save Configuration" Style="{StaticResource PrimaryBtn}" Height="36" Click="SaveSettings_Click" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ======================================================== -->
+            <!-- FLOATING BOTTOM PROGRESS TOAST (UPLOADING / SORTING BAR) -->
+            <!-- ======================================================== -->
+            <Border x:Name="ToastProgress"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Background="#FFFFFF"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1.5"
+                    CornerRadius="24"
+                    Padding="18,10"
+                    Margin="0,0,0,24"
+                    Visibility="Collapsed"
+                    Panel.ZIndex="999">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="26" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.16"/>
+                </Border.Effect>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtToastIcon" Text="⚡" FontSize="15" Foreground="#FBC305" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock x:Name="TxtToastTitle" Text="Processing files..." FontSize="12" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock x:Name="TxtToastDetail" Text="Lock check &amp; local AI routing" FontSize="10" Foreground="#64748B" Margin="0,1,0,0"/>
+                    </StackPanel>
+                    <!-- Modern Progress Bar with Capsule Border to Stand Out -->
+                    <Border x:Name="BorderToastProgress" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="5" Height="10" Width="130" Padding="1" VerticalAlignment="Center">
+                        <ProgressBar x:Name="ProgressToast"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Foreground="#FBC305"
+                                     Minimum="0" Maximum="100"
+                                     Value="50"
+                                     IsIndeterminate="True"/>
+                    </Border>
+                    <Button Content="✕"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="#94A3B8"
+                            FontSize="11"
+                            Margin="14,0,0,0"
+                            Cursor="Hand"
+                            Click="DismissToast_Click"/>
+                </StackPanel>
+            </Border>
+
+            <!-- ======================================================== -->
+            <!-- CUSTOM LIQUID GLASS POPUP FOR TRIPLE-DOT (•••) OPTIONS   -->
+            <!-- ======================================================== -->
+            <Popup x:Name="FolderOptionsPopup"
+                   StaysOpen="False"
+                   AllowsTransparency="True"
+                   Placement="Bottom"
+                   PopupAnimation="Fade">
+                <Border Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="14"
+                        Width="240"
+                        Margin="0,4,0,0">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="20" ShadowDepth="6" Direction="270" Color="#0F172A" Opacity="0.14"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <!-- Header with Folder Name -->
+                        <TextBlock x:Name="TxtPopupFolderName" Text="Documents" FontSize="13" FontWeight="Bold" Foreground="#0F172A" Margin="4,0,0,8"/>
+
+                        <!-- Color Palette Title & Circles -->
+                        <TextBlock Text="FOLDER COLOR" FontSize="9" FontWeight="Bold" Foreground="#64748B" Margin="4,0,0,6"/>
+                        <WrapPanel x:Name="PanelColorPalette" Margin="2,0,0,10">
+                            <!-- Swatches populated in code-behind -->
+                        </WrapPanel>
+
+                        <Separator Background="#F1F5F9" Margin="0,0,0,6"/>
+
+                        <!-- Actions -->
+                        <Button Style="{StaticResource ModernMenuBtn}" Click="PopupDuplicate_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📋" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock Text="Duplicate Folder"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource ModernMenuBtn}" Click="PopupRename_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="✏️" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock Text="Rename Folder"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource ModernMenuBtn}" Click="PopupEditContext_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📝" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock Text="Edit context.md"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource ModernMenuBtn}" Click="PopupOpenExplorer_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📂" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock Text="Open in Explorer"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource ModernMenuBtn}" Click="PopupToggleLock_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="TxtPopupLockIcon" Text="🔒" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock x:Name="TxtPopupLockText" Text="Lock Folder (Exempt)"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Separator x:Name="SepPopupDelete" Background="#F1F5F9" Margin="0,4,0,4"/>
+
+                        <Button x:Name="BtnPopupDelete" Style="{StaticResource ModernMenuBtn}" Click="PopupDelete_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🗑️" Margin="0,0,8,0" FontSize="13"/>
+                                <TextBlock Text="Delete Folder" Foreground="#DC2626"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Grid>
+
+        <!-- ==================== SETUP WIZARD FULL-WINDOW YELLOW BACKDROP ==================== -->
+        <Grid x:Name="WizardBackdrop" Grid.Row="0" Grid.RowSpan="2" Background="#FBC305" Visibility="Collapsed" Panel.ZIndex="100000">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.12">
+                <Image Source="Assets/SortiFile_Logo_PNG.png" Width="140" Height="140" RenderOptions.BitmapScalingMode="HighQuality"/>
+                <TextBlock Text="SortiFile" FontSize="32" FontWeight="Bold" Foreground="#000000" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

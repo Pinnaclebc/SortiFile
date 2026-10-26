@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+
+# Local application state
+config.local.json
+sorti_history.db
+sorti_history.db-*
+sort_history.json
+
+# Release-only and design assets
+*.exe
+*.png
+*.svg
+
+# Local-only test and reset utilities
+tests/
+reset_app.py
+
+# Build and packaging output
+build/
+dist/
+*.spec.bak
+*.pdb
+
+# .NET
+src-wpf/bin/
+src-wpf/obj/
+
+# IDE and OS files
+.vscode/
+.idea/
+.agents/
+*.user
+*.suo
+Thumbs.db
+Desktop.ini
+
+# Project-local changelog is maintained outside version control
+changelog.txt

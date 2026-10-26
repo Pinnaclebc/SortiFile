@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SortiFile - Autonomous Local File Sorting Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation (Module 5B) -->
+        <aside class="sidebar">
+            <div class="brand-icon" title="SortiFile">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+                    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+                </svg>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard" title="Dashboard & Live Queue">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </button>
+                <button class="nav-item" data-tab="folders" title="Folder Contexts">
+                    <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                </button>
+                <button class="nav-item" data-tab="history" title="Sort History & Undo">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </button>
+                <button class="nav-item" data-tab="settings" title="Settings & Theming">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="https://github.com" target="_blank" style="color:rgba(255,255,255,0.4);" title="SortiFile Core">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Viewport -->
+        <main class="main-viewport">
+            <!-- Global Top Bar -->
+            <header class="top-bar">
+                <div class="header-left">
+                    <h1>SortiFile Agent</h1>
+                    <p>Autonomous local file listener, content reader, and intelligent classifier</p>
+                </div>
+
+                <div class="top-actions">
+                    <div class="status-pill active" id="watcher-status-pill">
+                        <span class="pulse-dot" id="watcher-pulse"></span>
+                        <span id="watcher-status-text">Monitoring Active</span>
+                    </div>
+
+                    <div class="status-pill" id="ollama-status-pill" title="Local LLM Connection">
+                        <span class="pulse-dot" id="ollama-pulse"></span>
+                        <span id="ollama-pill-text">Ollama: Initializing...</span>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="triggerScan()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        Scan Watch Folder
+                    </button>
+
+                    <button class="btn btn-outline" onclick="triggerUndo()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                        Undo Last Sort
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: DASHBOARD & LIVE QUEUE (Module 5C) -->
+            <div id="view-dashboard" class="view-tab">
+                <!-- Summary Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Total Sorted</div>
+                        <div class="stat-value" id="stat-total-sorted">0</div>
+                        <div class="stat-sub">Automated actions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Active In Queue</div>
+                        <div class="stat-value" id="stat-active-queue">0</div>
+                        <div class="stat-sub">Live pipeline processing</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Average Confidence</div>
+                        <div class="stat-value" id="stat-avg-confidence">--%</div>
+                        <div class="stat-sub">Routing accuracy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Target Folders</div>
+                        <div class="stat-value" id="stat-folders-count">3</div>
+                        <div class="stat-sub">With active .context.md</div>
+                    </div>
+                </div>
+
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="file-upload-input" style="display:none;" multiple>
+                    <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <div class="drop-zone-title">Drag & drop any file here to test AI sorting</div>
+                    <div class="drop-zone-sub">Supports .txt, .md, .csv, .docx, .pdf, images, binaries and archives</div>
+                </div>
+
+                <!-- Live Queue View (Module 5C) -->
+                <div class="card-section">
+                    <div class="card-header">
+                        <div class="card-title">
+                            Live Processing Queue
+                            <span class="badge-count" id="queue-badge-count">0</span>
+                        </div>
+                        <span style="font-size:12px; color:var(--text-secondary);">Real-time stream via WebSockets</span>
+                    </div>
+                    <div class="queue-list" id="queue-list">
+                        <div class="queue-empty">
+                            <p>Queue is empty. Drop files above or place them in the Watch Folder to sort.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Table -->
+                <div class="card-section">
+                    <div class="card-header">
+                        <div class="card-title">Recent Sort Actions</div>
+                        <button class="btn btn-outline btn-sm" onclick="switchTab('history')">View Full History</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Target Folder</th>
+                                    <th>Confidence</th>
+                                    <th>AI Reasoning</th>
+                                    <th>Time</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-activity-tbody">
+                                <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-secondary);">Loading activity...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: FOLDER CONTEXTS (Module 2C & 3C) -->
+            <div id="view-folders" class="view-tab" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <div>
+                        <h2 style="font-size:18px; font-weight:600;">Workspace Target Folders & Contexts</h2>
+                        <p style="font-size:13px; color:var(--text-secondary);">The LLM reads each folder's .context.md summary to decide where files belong.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateFolderModal()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        New Folder
+                    </button>
+                </div>
+
+                <div class="folders-grid" id="folders-grid">
+                    <!-- Populated via app.js -->
+                </div>
+            </div>
+
+            <!-- TAB 3: SORT HISTORY & UNDO (Module 4B & 4C) -->
+            <div id="view-history" class="view-tab" style="display:none;">
+                <div class="card-section">
+                    <div class="card-header">
+                        <div class="card-title">Comprehensive Sort History</div>
+                        <span style="font-size:12px; color:var(--text-secondary);">Logged in sort_history.json</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Target Folder</th>
+                                    <th>Confidence</th>
+                                    <th>AI Reasoning</th>
+                                    <th>Timestamp</th>
+                                    <th>Revert</th>
+                                </tr>
+                            </thead>
+                            <tbody id="full-history-tbody">
+                                <tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-secondary);">No history found.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS & THEMING (Module 5D) -->
+            <div id="view-settings" class="view-tab" style="display:none;">
+                <!-- Dynamic Theming Engine Section -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Theming Engine (CSS Variables)</h3>
+                    <p class="settings-section-desc">Dynamically customize the dashboard palette. Live changes update CSS variables instantaneously.</p>
+
+                    <div style="margin-bottom:16px;">
+                        <span class="form-label">Theme Presets:</span>
+                        <div class="preset-buttons">
+                            <button class="btn btn-secondary btn-sm" onclick="selectThemePreset('mono')">Minimal Mono</button>
+                            <button class="btn btn-secondary btn-sm" onclick="selectThemePreset('midnight')">Midnight Slate</button>
+                            <button class="btn btn-secondary btn-sm" onclick="selectThemePreset('emerald')">Emerald Fresh</button>
+                            <button class="btn btn-secondary btn-sm" onclick="selectThemePreset('graphite')">Graphite Dark</button>
+                        </div>
+                    </div>
+
+                    <div class="theme-pickers-grid">
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Background</span>
+                            <input type="color" id="theme-bg_color" class="color-picker-input" onchange="onCustomColorChange('bg_color', this.value)">
+                        </div>
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Sidebar</span>
+                            <input type="color" id="theme-sidebar_color" class="color-picker-input" onchange="onCustomColorChange('sidebar_color', this.value)">
+                        </div>
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Card Background</span>
+                            <input type="color" id="theme-card_bg" class="color-picker-input" onchange="onCustomColorChange('card_bg', this.value)">
+                        </div>
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Accent Color</span>
+                            <input type="color" id="theme-accent_color" class="color-picker-input" onchange="onCustomColorChange('accent_color', this.value)">
+                        </div>
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Primary Text</span>
+                            <input type="color" id="theme-text_primary" class="color-picker-input" onchange="onCustomColorChange('text_primary', this.value)">
+                        </div>
+                        <div class="color-picker-card">
+                            <span class="color-picker-label">Secondary Text</span>
+                            <input type="color" id="theme-text_secondary" class="color-picker-input" onchange="onCustomColorChange('text_secondary', this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LLM / Ollama Configuration -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Local LLM Brain (Ollama)</h3>
+                    <p class="settings-section-desc">Connects to your local Ollama instance. If offline, the smart rule & semantic fallback engine automatically activates.</p>
+
+                    <div class="form-group">
+                        <label class="form-label">Ollama Host URL</label>
+                        <div style="display:flex; gap:12px;">
+                            <input type="text" id="setting-ollama-host" class="form-input" placeholder="http://127.0.0.1:11434">
+                            <button class="btn btn-secondary" onclick="testOllamaConnection()">Test Connection</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Target Model</label>
+                        <select id="setting-ollama-model" class="form-input" style="max-width:320px;">
+                            <option value="llama3:8b">llama3:8b</option>
+                            <option value="qwen2.5:7b">qwen2.5:7b</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Confidence Threshold (Fallback to /Inbox below this)</label>
+                        <div class="slider-container">
+                            <input type="range" id="setting-threshold" class="slider-input" min="50" max="95" value="75" oninput="updateThresholdDisplay(this.value)">
+                            <span class="slider-val" id="threshold-display">75%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Directory Paths -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Directory Configuration</h3>
+                    <p class="settings-section-desc">Define monitored incoming folder and destination workspace.</p>
+
+                    <div class="form-group">
+                        <label class="form-label">Watch Directory (Monitored by watchdog)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="setting-watch-dir" class="form-input">
+                            <button class="btn btn-secondary btn-sm" onclick="openPathInExplorer(document.getElementById('setting-watch-dir').value)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                Open in Explorer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Workspace Directory (Destination folder containing Documents, Images, Inbox)</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="setting-workspace-dir" class="form-input">
+                            <button class="btn btn-secondary btn-sm" onclick="openPathInExplorer(document.getElementById('setting-workspace-dir').value)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                Open in Explorer
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveGeneralSettings()">Save All Settings</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div class="modal-overlay" id="create-folder-modal">
+        <div class="modal-card">
+            <h3 style="font-size:18px; font-weight:600; margin-bottom:12px;">Add Workspace Target Folder</h3>
+            <div class="form-group">
+                <label class="form-label">Folder Name</label>
+                <input type="text" id="new-folder-name" class="form-input" placeholder="e.g. Spreadsheets, Invoices, Archives">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Folder Description (.context.md)</label>
+                <textarea id="new-folder-desc" class="context-textarea" placeholder="Describe the types of files and themes this folder should contain..."></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+                <button class="btn btn-outline" onclick="closeCreateFolderModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitCreateFolder()">Create Folder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+
