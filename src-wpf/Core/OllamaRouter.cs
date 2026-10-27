@@ -12,7 +12,12 @@ namespace SortiFileWpf.Core
     public class RoutingResult
     {
         public string TargetFolder { get; set; } = "Inbox";
-        public int ConfidenceScore { get; set; } = 50;
+        public double ConfidenceValue { get; set; } = 50.0;
+        public int ConfidenceScore
+        {
+            get => (int)Math.Round(ConfidenceValue);
+            set => ConfidenceValue = value;
+        }
         public string Reasoning { get; set; } = "";
         public string Engine { get; set; } = "Heuristic Fallback";
     }
@@ -165,58 +170,281 @@ namespace SortiFileWpf.Core
             return "Inbox";
         }
 
+        private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "and", "the", "for", "with", "this", "that", "from", "into", "over", "more",
+            "some", "such", "than", "then", "them", "these", "those", "context", "files",
+            "documents", "relevant", "related", "assets", "common", "types", "includes", "general"
+        };
+
+        private static string NormalizeStem(string w)
+        {
+            w = w.ToLowerInvariant();
+            if (w.EndsWith("ies") && w.Length > 4) return w.Substring(0, w.Length - 3) + "y";
+            if (w.EndsWith("es") && w.Length > 3) return w.Substring(0, w.Length - 2);
+            if (w.EndsWith("s") && !w.EndsWith("ss") && w.Length > 3) return w.Substring(0, w.Length - 1);
+            if (w.EndsWith("ing") && w.Length > 5) return w.Substring(0, w.Length - 3);
+            if (w.EndsWith("ed") && w.Length > 4) return w.Substring(0, w.Length - 2);
+            return w;
+        }
+
+        private static bool WordsMatch(string w1, string w2)
+        {
+            if (w1.Equals(w2, StringComparison.OrdinalIgnoreCase)) return true;
+            if (w1.Length >= 2 && w2.Length >= 2)
+            {
+                string s1 = NormalizeStem(w1);
+                string s2 = NormalizeStem(w2);
+                if (s1.Equals(s2, StringComparison.OrdinalIgnoreCase)) return true;
+                if ((s1.StartsWith(s2, StringComparison.OrdinalIgnoreCase) || s2.StartsWith(s1, StringComparison.OrdinalIgnoreCase)) &&
+                    Math.Min(s1.Length, s2.Length) >= 3)
+                    return true;
+            }
+            return false;
+        }
+
+        private static List<string> ExtractWords(string text)
+        {
+            return Regex.Matches((text ?? "").ToLowerInvariant(), @"\b[a-z0-9]{2,}\b")
+                        .Select(m => m.Value)
+                        .Where(w => !StopWords.Contains(w))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+        }
+
+        private class CandidateScore
+        {
+            public string FolderPath { get; set; } = "";
+            public double Score { get; set; } = 0.0;
+            public int UniqueMatches { get; set; } = 0;
+            public int InheritedMatches { get; set; } = 0;
+            public bool NameMatch { get; set; } = false;
+            public string Reasoning { get; set; } = "";
+        }
+
         private static RoutingResult HeuristicRoute(string filePath, string snippet, Dictionary<string, string> folderContexts, string category)
         {
             string ext = Path.GetExtension(filePath).ToLowerInvariant();
             string name = Path.GetFileName(filePath).ToLowerInvariant();
             string content = (snippet ?? "").ToLowerInvariant();
 
-            if (category == "Media/Binary" || ext is ".png" or ".jpg" or ".jpeg" or ".webp" or ".gif" or ".svg" or ".ico")
+            var fileNameWords = ExtractWords(name);
+            var contentWords = ExtractWords(name + " " + content);
+
+            bool isVideo = ext is ".mp4" or ".mov" or ".mkv" or ".avi" or ".webm" or ".wmv" or ".flv" or ".m4v";
+            bool isAudio = ext is ".mp3" or ".wav" or ".flac" or ".aac" or ".ogg" or ".m4a";
+            bool isImage = ext is ".png" or ".jpg" or ".jpeg" or ".webp" or ".gif" or ".svg" or ".ico" or ".bmp" or ".tiff";
+            bool isArchive = category == "Archive/Installer" || ext is ".zip" or ".tar" or ".gz" or ".tgz" or ".7z" or ".rar" or ".bz2" or ".xz" or ".msi" or ".iso";
+            bool isDoc = category == "Text/Doc" || ext is ".txt" or ".md" or ".docx" or ".pdf" or ".csv" or ".tsv" or ".json" or ".xlsx" or ".xls" or ".pptx" or ".ppt" or ".rtf" or ".xml" or ".html";
+
+            var candidateScores = new Dictionary<string, CandidateScore>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kvp in folderContexts)
             {
-                if (folderContexts.ContainsKey("Images"))
+                string folder = kvp.Key.Replace('\\', '/');
+                if (folder is "Inbox" or "Code_Projects") continue;
+
+                string folderDesc = kvp.Value ?? "";
+                int lastSlash = folder.LastIndexOf('/');
+                bool isSubfolder = lastSlash > 0;
+                string parentFolder = isSubfolder ? folder.Substring(0, lastSlash) : "";
+                string selfName = isSubfolder ? folder.Substring(lastSlash + 1) : folder;
+
+                // Split self-name tokens (e.g. "AWS" or "HR_Policies")
+                var selfTokens = selfName.Split(new[] { '_', '-', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                                         .Where(t => t.Length >= 2 && !StopWords.Contains(t))
+                                         .ToList();
+                bool fileNameTokenMatch = selfTokens.Any(st => fileNameWords.Any(fw => WordsMatch(st, fw)));
+                bool selfNameMatch = selfTokens.Any(st => contentWords.Any(cw => WordsMatch(st, cw)));
+
+                // Separate unique subcategory context from inherited parent context
+                string inheritedPart = "";
+                string uniquePart = folderDesc;
+                if (folderDesc.Contains("[Subcategory:"))
                 {
-                    return new RoutingResult
-                    {
-                        TargetFolder = "Images",
-                        ConfidenceScore = 93,
-                        Reasoning = $"Matched visual image extension ({ext}) to Images folder.",
-                        Engine = "Heuristic Fallback"
-                    };
+                    int idx = folderDesc.IndexOf("[Subcategory:");
+                    inheritedPart = folderDesc.Substring(0, idx);
+                    uniquePart = folderDesc.Substring(idx);
                 }
-            }
 
-            if (category == "Text/Doc" || ext is ".txt" or ".md" or ".docx" or ".pdf" or ".csv" or ".tsv" or ".json")
-            {
-                string bestFolder = folderContexts.ContainsKey("Documents") ? "Documents" : "Inbox";
-                int score = 88;
-                string reason = $"Matched document extension ({ext}) to Documents folder.";
+                var uniqueWords = ExtractWords(selfName + " " + uniquePart);
+                var inheritedWords = ExtractWords(inheritedPart);
 
-                foreach (var kvp in folderContexts)
+                int uniqueMatches = uniqueWords.Count(uw => contentWords.Any(cw => WordsMatch(uw, cw)));
+                int inheritedMatches = inheritedWords.Count(iw => contentWords.Any(cw => WordsMatch(iw, cw)));
+
+                // Filter out accidental single-word match on academic "paper" if file is just printer supplies
+                if (folder.Contains("Paper", StringComparison.OrdinalIgnoreCase) || folder.Contains("Research", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (kvp.Key is "Inbox" or "Code_Projects") continue;
-                    if (name.Contains(kvp.Key.ToLowerInvariant()) || content.Contains(kvp.Key.ToLowerInvariant()))
+                    bool hasAcademicContext = contentWords.Any(w => w is "academic" or "research" or "neural" or "transformer" or "learning" or "study" or "model" or "dataset" or "abstract");
+                    if (!hasAcademicContext && selfTokens.Any(st => st.Equals("papers", StringComparison.OrdinalIgnoreCase) || st.Equals("paper", StringComparison.OrdinalIgnoreCase)))
                     {
-                        bestFolder = kvp.Key;
-                        score = 95;
-                        reason = $"File content or name matches folder '{kvp.Key}'.";
-                        break;
+                        selfNameMatch = false;
+                        fileNameTokenMatch = false;
+                        uniqueMatches = 0;
                     }
                 }
 
-                return new RoutingResult
+                double score = 50.0;
+                string reason = "";
+
+                if (isVideo)
                 {
-                    TargetFolder = bestFolder,
-                    ConfidenceScore = score,
-                    Reasoning = reason,
-                    Engine = "Heuristic Fallback"
+                    string combined = (selfName + " " + folderDesc).ToLowerInvariant();
+                    bool isVideoFolder = combined.Contains("video") || combined.Contains("movie") || combined.Contains("recording") || combined.Contains("footage") || combined.Contains("clip") || combined.Contains("tutorial");
+                    if (isVideoFolder)
+                    {
+                        score = 88.0 + (fileNameTokenMatch ? 6.0 : (selfNameMatch ? 3.0 : 0.0)) + (uniqueMatches * 3.5);
+                        if (isSubfolder && (fileNameTokenMatch || selfNameMatch || uniqueMatches > 0))
+                        {
+                            score += 5.0; // Subfolder specificity boost for video!
+                        }
+                        if (combined.Contains("audio") || combined.Contains("podcast")) score -= 50.0;
+                        reason = $"Matched video file format ({ext}) to {folder}.";
+                    }
+                }
+                else if (isAudio)
+                {
+                    string combined = (selfName + " " + folderDesc).ToLowerInvariant();
+                    bool isAudioFolder = combined.Contains("audio") || combined.Contains("music") || combined.Contains("sound") || combined.Contains("podcast") || combined.Contains("sfx") || selfName.Equals("sfx", StringComparison.OrdinalIgnoreCase);
+                    if (isAudioFolder)
+                    {
+                        score = 88.0 + (fileNameTokenMatch ? 6.0 : (selfNameMatch ? 3.0 : 0.0)) + (uniqueMatches * 3.5);
+                        if (isSubfolder && (fileNameTokenMatch || selfNameMatch || uniqueMatches > 0))
+                        {
+                            score += 5.0; // Subfolder specificity boost for audio!
+                        }
+                        if (combined.Contains("video") || combined.Contains("movie")) score -= 50.0;
+                        reason = $"Matched audio file format ({ext}) to {folder}.";
+                    }
+                }
+                else if (isArchive)
+                {
+                    string combined = (selfName + " " + folderDesc).ToLowerInvariant();
+                    if (combined.Contains("archive") || combined.Contains("backup") || combined.Contains("zip") || combined.Contains("package") || combined.Contains("installer"))
+                    {
+                        score = 90.0 + (fileNameTokenMatch ? 5.0 : 0.0) + (uniqueMatches * 2.5);
+                        reason = $"Matched compressed archive format ({ext}) to {folder}.";
+                    }
+                }
+                else if (isImage)
+                {
+                    if (fileNameTokenMatch || selfNameMatch || uniqueMatches > 0)
+                    {
+                        score = 88.0 + (fileNameTokenMatch ? 6.0 : (selfNameMatch ? 3.0 : 0.0)) + (uniqueMatches * 3.5);
+                        if (isSubfolder && (fileNameTokenMatch || uniqueMatches > 0)) score += 4.0;
+                        reason = $"Matched image asset context keywords for '{folder}'.";
+                    }
+                    else if (folder.Equals("Images", StringComparison.OrdinalIgnoreCase))
+                    {
+                        score = 93.0;
+                        reason = $"Matched visual image extension ({ext}) to Images folder.";
+                    }
+                }
+                else if (isDoc || contentWords.Count > 0)
+                {
+                    bool isMediaOnly = selfName.Contains("Video", StringComparison.OrdinalIgnoreCase) ||
+                                       selfName.Contains("Audio", StringComparison.OrdinalIgnoreCase) ||
+                                       selfName.Contains("Images", StringComparison.OrdinalIgnoreCase) ||
+                                       selfName.Contains("Archives", StringComparison.OrdinalIgnoreCase);
+
+                    if (fileNameTokenMatch || selfNameMatch || uniqueMatches > 0 || inheritedMatches > 0)
+                    {
+                        double points = (fileNameTokenMatch ? 9.5 : (selfNameMatch ? 5.0 : 0.0)) + (uniqueMatches * 4.8) + (inheritedMatches * 1.5);
+                        score = 80.0 + points;
+
+                        if (isSubfolder && (fileNameTokenMatch || uniqueMatches > 0))
+                        {
+                            score += 4.5; // Subfolder specificity boost!
+                            reason = $"Matched subfolder '{folder}' with {uniqueMatches} specific context keywords.";
+                        }
+                        else
+                        {
+                            reason = $"Matched {uniqueMatches + inheritedMatches} taxonomy keywords for '{folder}'.";
+                        }
+                    }
+                    else if (folder.Equals("Documents", StringComparison.OrdinalIgnoreCase) && isDoc)
+                    {
+                        score = 85.0;
+                        reason = "Default document classification to Documents.";
+                    }
+
+                    if (isMediaOnly && uniqueMatches < 3 && !fileNameTokenMatch)
+                    {
+                        score = 40.0; // Prevent documents from falling into video/audio folders
+                    }
+                }
+
+                // High-precision fractional component to break ties accurately
+                double tieBreaker = (uniqueMatches * 0.17) + (inheritedMatches * 0.03) + (selfNameMatch ? 0.08 : 0.0);
+                score = Math.Min(98.9, Math.Max(50.0, score + tieBreaker));
+
+                candidateScores[folder] = new CandidateScore
+                {
+                    FolderPath = folder,
+                    Score = score,
+                    UniqueMatches = uniqueMatches,
+                    InheritedMatches = inheritedMatches,
+                    NameMatch = selfNameMatch,
+                    Reasoning = reason
                 };
+            }
+
+            // Select the highest scoring folder across all candidates
+            string bestFolder = "Inbox";
+            double bestScore = 50.0;
+            string bestReason = "Unrecognized binary or low confidence format routed to Inbox for review.";
+
+            foreach (var kvp in candidateScores)
+            {
+                if (kvp.Value.Score > bestScore)
+                {
+                    bestScore = kvp.Value.Score;
+                    bestFolder = kvp.Key;
+                    bestReason = kvp.Value.Reasoning;
+                }
+            }
+
+            // HIERARCHICAL SUBFOLDER CHECK:
+            // Check if the chosen folder (or parent) has subfolders that match the file's specific context or have higher confidence
+            string rootCandidate = bestFolder.Contains('/') ? bestFolder.Substring(0, bestFolder.IndexOf('/')) : bestFolder;
+            var subfolders = candidateScores.Keys
+                .Where(k => k.StartsWith(rootCandidate + "/", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (subfolders.Count > 0)
+            {
+                string? winningSubfolder = null;
+                double winningSubScore = bestScore;
+
+                foreach (var sub in subfolders)
+                {
+                    var subCandidate = candidateScores[sub];
+                    // If subfolder matches unique tokens and its score is competitive or higher
+                    if ((subCandidate.UniqueMatches > 0 || subCandidate.NameMatch) && subCandidate.Score >= (bestScore - 3.0))
+                    {
+                        double effectiveSubScore = Math.Max(subCandidate.Score, bestScore + 0.5);
+                        if (effectiveSubScore > winningSubScore || winningSubfolder == null)
+                        {
+                            winningSubScore = effectiveSubScore;
+                            winningSubfolder = sub;
+                            bestReason = $"Matched specific subfolder '{sub}' (confidence {effectiveSubScore:F1}%) over parent '{rootCandidate}'.";
+                        }
+                    }
+                }
+
+                if (winningSubfolder != null)
+                {
+                    bestFolder = winningSubfolder;
+                    bestScore = winningSubScore;
+                }
             }
 
             return new RoutingResult
             {
-                TargetFolder = "Inbox",
-                ConfidenceScore = 60,
-                Reasoning = "Unrecognized binary or low confidence format routed to Inbox for review.",
+                TargetFolder = bestFolder,
+                ConfidenceValue = bestScore,
+                Reasoning = bestReason,
                 Engine = "Heuristic Fallback"
             };
         }

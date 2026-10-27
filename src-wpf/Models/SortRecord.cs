@@ -31,6 +31,9 @@ namespace SortiFileWpf.Models
         [JsonPropertyName("confidence_score")]
         public int ConfidenceScore { get; set; } = 0;
 
+        [JsonPropertyName("confidence_value")]
+        public double ConfidenceValue { get; set; } = 0.0;
+
         [JsonPropertyName("reasoning")]
         public string Reasoning { get; set; } = "";
 

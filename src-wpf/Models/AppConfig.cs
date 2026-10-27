@@ -37,7 +37,13 @@ namespace SortiFileWpf.Models
         public static string GetConfigPath()
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            return Path.Combine(baseDir, "config.json");
+            string localConfig = Path.Combine(baseDir, "config.json");
+            if (File.Exists(localConfig)) return localConfig;
+
+            string cwdConfig = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+            if (File.Exists(cwdConfig)) return cwdConfig;
+
+            return localConfig;
         }
 
         public static AppConfig Load()
@@ -70,6 +76,10 @@ namespace SortiFileWpf.Models
         public string ResolvePath(string relativeOrAbs)
         {
             if (Path.IsPathRooted(relativeOrAbs)) return relativeOrAbs;
+
+            string fromCwd = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), relativeOrAbs));
+            if (Directory.Exists(fromCwd) || File.Exists(fromCwd)) return fromCwd;
+
             return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativeOrAbs));
         }
     }

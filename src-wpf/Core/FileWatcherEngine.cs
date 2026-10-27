@@ -183,7 +183,7 @@ namespace SortiFileWpf.Core
             }
         }
 
-        private void ProcessSingleFile(string filePath)
+        public void ProcessSingleFile(string filePath)
         {
             var item = new QueueItem { FilePath = filePath };
 
@@ -245,6 +245,7 @@ namespace SortiFileWpf.Core
                     TargetFolder = routing.TargetFolder,
                     Category = category,
                     ConfidenceScore = routing.ConfidenceScore,
+                    ConfidenceValue = routing.ConfidenceValue,
                     Reasoning = routing.Reasoning,
                     Engine = routing.Engine,
                     Status = "moved"
@@ -264,13 +265,38 @@ namespace SortiFileWpf.Core
         public Dictionary<string, string> LoadContexts()
         {
             string ws = Config.ResolvePath(Config.WorkspaceDir);
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (!Directory.Exists(ws)) return dict;
+            var rawDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!Directory.Exists(ws)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            ScanContextsRecursive(ws, ws, dict);
+            ScanContextsRecursive(ws, ws, rawDict);
 
-            if (!dict.ContainsKey("Inbox")) dict["Inbox"] = "Fallback staging area for unclassified files.";
-            return dict;
+            // Compute dynamic context inheritance for subfolders (ordered by depth so parents resolve first)
+            var effectiveDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var sortedKeys = rawDict.Keys.OrderBy(k => k.Count(c => c == '/')).ToList();
+
+            foreach (var key in sortedKeys)
+            {
+                string rawCtx = rawDict[key];
+                int lastSlash = key.LastIndexOf('/');
+                if (lastSlash > 0)
+                {
+                    string parentKey = key.Substring(0, lastSlash);
+                    string parentCtx = effectiveDict.TryGetValue(parentKey, out string? pCtx) ? pCtx : "";
+                    string subName = key.Substring(lastSlash + 1);
+
+                    // Inherit parent context dynamically + declare subcategory and unique context
+                    effectiveDict[key] = string.IsNullOrWhiteSpace(rawCtx) || rawCtx.Equals($"Files related to {subName}.", StringComparison.OrdinalIgnoreCase)
+                        ? $"{parentCtx}\n[Subcategory: {subName}]"
+                        : $"{parentCtx}\n[Subcategory: {subName}] Specific context: {rawCtx}";
+                }
+                else
+                {
+                    effectiveDict[key] = rawCtx;
+                }
+            }
+
+            if (!effectiveDict.ContainsKey("Inbox")) effectiveDict["Inbox"] = "Fallback staging area for unclassified files.";
+            return effectiveDict;
         }
 
         private void ScanContextsRecursive(string rootDir, string currentDir, Dictionary<string, string> dict)
@@ -281,7 +307,7 @@ namespace SortiFileWpf.Core
                 if (name.StartsWith(".") || name.Equals("Code_Projects", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                string relPath = Path.GetRelativePath(rootDir, dir);
+                string relPath = Path.GetRelativePath(rootDir, dir).Replace('\\', '/');
 
                 // Exclude locked folders from auto-organizing
                 if (Config.LockedFolders != null && (Config.LockedFolders.Contains(relPath, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(name, StringComparer.OrdinalIgnoreCase)))

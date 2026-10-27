@@ -13,12 +13,12 @@ namespace SortiFileWpf.Core
     {
         private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".txt", ".md", ".markdown", ".csv", ".tsv", ".json", ".xml", ".html", ".htm", ".rtf", ".log", ".yaml", ".yml", ".ini", ".cfg", ".docx", ".pdf"
+            ".txt", ".md", ".markdown", ".csv", ".tsv", ".json", ".xml", ".html", ".htm", ".rtf", ".log", ".yaml", ".yml", ".ini", ".cfg", ".docx", ".pdf", ".xlsx", ".xls", ".pptx", ".ppt"
         };
 
         private static readonly HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg", ".ico", ".tiff", ".mp4", ".mov", ".mkv", ".avi", ".mp3", ".wav", ".flac", ".exe", ".bin"
+            ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg", ".ico", ".tiff", ".mp4", ".mov", ".mkv", ".avi", ".webm", ".wmv", ".flv", ".m4v", ".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a", ".exe", ".bin"
         };
 
         private static readonly HashSet<string> ArchiveExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -101,6 +101,11 @@ namespace SortiFileWpf.Core
                     return ExtractDocx(filePath, maxWords);
                 }
 
+                if (ext == ".pdf")
+                {
+                    return ExtractPdfText(filePath, maxWords);
+                }
+
                 if (ext is ".txt" or ".md" or ".markdown" or ".csv" or ".tsv" or ".json" or ".log" or ".xml" or ".html")
                 {
                     using var reader = new StreamReader(filePath, Encoding.UTF8, true);
@@ -114,6 +119,48 @@ namespace SortiFileWpf.Core
 
             string fileName = Path.GetFileNameWithoutExtension(filePath).Replace("_", " ").Replace("-", " ");
             return $"Asset file: {Path.GetFileName(filePath)} (Name tokens: {fileName})";
+        }
+
+        private static string ExtractPdfText(string filePath, int maxWords)
+        {
+            try
+            {
+                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(stream, Encoding.ASCII);
+                char[] buffer = new char[65536];
+                int read = reader.Read(buffer, 0, buffer.Length);
+                string content = new string(buffer, 0, read);
+
+                var extracted = new StringBuilder();
+
+                // 1. Check for text inside parentheses (common Tj / TJ / ' PDF text operators)
+                var matches = Regex.Matches(content, @"\(([^()]{2,100})\)\s*(?:Tj|TJ|'|\))", RegexOptions.Singleline);
+                foreach (Match m in matches)
+                {
+                    string txt = m.Groups[1].Value.Trim();
+                    if (txt.Length >= 2 && txt.Any(char.IsLetter))
+                    {
+                        extracted.Append(txt).Append(' ');
+                    }
+                }
+
+                // 2. Also check PDF /Title or /Subject metadata
+                var metaMatch = Regex.Match(content, @"/(?:Title|Subject)\s*\(([^()]+)\)");
+                if (metaMatch.Success)
+                {
+                    extracted.Insert(0, metaMatch.Groups[1].Value + " ");
+                }
+
+                string result = extracted.ToString().Trim();
+                if (!string.IsNullOrWhiteSpace(result) && result.Length >= 10)
+                {
+                    return TruncateToWords(result, maxWords);
+                }
+            }
+            catch { }
+
+            string fileName = Path.GetFileNameWithoutExtension(filePath).Replace("_", " ").Replace("-", " ");
+            return $"PDF Document: {Path.GetFileName(filePath)} (Title/Tokens: {fileName})";
         }
 
         private static string ExtractDocx(string filePath, int maxWords)

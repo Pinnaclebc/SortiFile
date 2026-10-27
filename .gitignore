@@ -47,6 +47,8 @@ dist/
 # .NET build outputs
 src-wpf/bin/
 src-wpf/obj/
+tests/**/bin/
+tests/**/obj/
 
 # IDE and OS files
 .vscode/

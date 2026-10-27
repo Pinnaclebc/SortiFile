@@ -3,7 +3,7 @@
   "workspace_dir": "SortiFile_Workspace",
   "confidence_threshold": 75,
   "ollama_host": "http://127.0.0.1:11434",
-  "ollama_model": "llama3:8b",
+  "ollama_model": "llama3.2:3b",
   "folder_colors": {},
   "locked_folders": [],
   "folder_order": [],
