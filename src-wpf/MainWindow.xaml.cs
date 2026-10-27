@@ -2391,7 +2391,7 @@ namespace SortiFileWpf
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com",
+                    FileName = "https://github.com/Pinnaclebc/SortiFile",
                     UseShellExecute = true
                 });
             }
