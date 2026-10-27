@@ -247,7 +247,7 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v2.9.6" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.0.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -255,197 +255,61 @@
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ What's New in v2.9.6" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Main Features in v1.0.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Changelog Item 1 -->
+                                    <!-- Feature 1: Autonomous Watch Folder -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🛡️ Real-Time Undo Sync on File Deletion" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Deleting a sorted file (in-app or via File Explorer) now immediately updates the audit log and un-highlights/disables the Undo Last and row-level Undo buttons." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="👁️ Autonomous Watch Folder &amp; Observer" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Real-time background monitoring for incoming downloads with multi-stage file lock detection and collision-proof routing." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 2 -->
+                                    <!-- Feature 2: Dual AI & Heuristic Routing -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🔄 Disk-Verified Undo State Engine" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="The Undo engine actively verifies physical file presence on disk, preventing phantom highlighted Undo buttons when target files no longer exist." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🧠 Smart Content Classification" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Extracts text and metadata from documents, PDFs, media, and code using local Ollama LLMs or instant heuristic fallback matching .context.md prompts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 3 -->
+                                    <!-- Feature 3: Drag & Drop Dashboard -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="✏️ Synchronized File Rename Tracking" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Renaming a file in the directory viewer keeps its corresponding sort history record synced, preserving valid undo capability after renames." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="📥 Native Drag &amp; Drop Dashboard" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Full-height interactive drop zone for immediate file routing, manual sorting, and real-time classification feedback." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 4 -->
+                                    <!-- Feature 4: Folder Management & Taxonomy -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🗄️ Workspace Directory in Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Setup Wizard now includes a dedicated Workspace step to choose where organized files live (SortiFile_Workspace, Documents, or Custom folder)." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🗂️ Interactive Taxonomy &amp; Folder Management" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Explore nested subfolder trees, customize folder color badges, lock folders from auto-sorting, and edit .context.md prompts directly." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 2 -->
+                                    <!-- Feature 5: Zero-Risk Undo Engine -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🗂️ Initial Folders &amp; Context Scaffolding" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Configure starter target folders and customize .context.md AI classification descriptions directly during setup, with a 1-click option to skip and use recommended defaults." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="↺ Zero-Risk Audit Log &amp; 1-Click Undo" FontSize="11" FontWeight="Bold" Foreground="#EA580C"/>
+                                            <TextBlock Text="Complete audit trail with disk-verified state tracking and single-click restoration of any moved file." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 3 -->
+                                    <!-- Feature 6: Guided Setup Wizard -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="↺ Reset Directory Paths in Settings" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Removed redundant setup wizard card from Settings and added an instant 'Reset to Defaults' action with confirmation dialog to revert paths." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🧙‍♂️ Guided First-Time Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#0284C7"/>
+                                            <TextBlock Text="Interactive multi-step setup to choose incoming watch folder, configure workspace storage, and scaffold initial taxonomy prompts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Changelog Item 4 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="📐 Setup Wizard Full Card Layout &amp; Auto-Scroll" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Expanded wizard dialog dimensions, optimized vertical padding, and integrated an adaptive scroll viewer so bottom cards are never cut off on any DPI scaling." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 2 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="⚡ Auto-Dismissing Clean Notification Toasts" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Setup completion and clipboard paste toasts now appear with clean icons, without progress bars, and automatically fade out after a few seconds." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 3 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="📂 Streamlined Files in Folder View" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Removed the redundant file count badge from the 'Files in Folder' header for a cleaner, distraction-free directory viewer." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 4 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="💛 Full-Window Solid Yellow Backdrop" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="When the setup wizard opens, the entire background window is covered in clean brand yellow (#FBC305), concealing background elements until setup completes." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 2 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🧭 Clickable Steps &amp; Docked Navigation" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Wizard step pills at the top are now fully interactive clickable tabs. Added dedicated Back and Next navigation buttons anchored at the bottom of the popup." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 3 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🔄 Instant Reset Testing Script" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Created reset_app.py to wipe settings and database with one command, instantly launching a fresh first-time setup experience for testing." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 4 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🧙‍♂️ First-Time Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Guided 3-step setup to choose/create incoming Watch Folder (Default, Downloads, or Custom). Re-launchable anytime from Settings." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 5 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🖼️ Edge-to-Edge Logo Frame Alignment" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
-                                            <TextBlock Text="Refined border frame and corner clipping geometry to 32x32 inner bounds so the logo seamlessly fills the inward border with zero margin gap." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 3 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🛡️ Smart Missing File Undo Handling" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="When a file has been deleted or moved outside SortiFile, undo is immediately disabled and notifies the user with a descriptive dialog." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 4 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="📂 Clean Folder Overview Header" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Removed the duplicate small folder name underneath the primary title on the folder overview card." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 5 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🏷️ Streamlined App Title" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
-                                            <TextBlock Text="Cleaned top-left taskbar branding to showcase just the bold 'SortiFile' title." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 1 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🎨 Neutral Canvas &amp; Deep Amber Tab" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Reverted canvas to clean neutral (#F6F8FA). Active taskbar tab pill restyled to deep amber (#451A03) with high-contrast white text." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 2 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="✨ Inward Yellow Logo Border" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Seamless logo styling with inward matching yellow border outline, eliminating any white border rings." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 3 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="📐 Full-Height Drag &amp; Drop Area" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Removed redundant metric cards to maximize drop zone workspace; real-time sorting progress tracked via the floating progress card." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 4 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="📋 Sort History Column Headers" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Added structured table header row with column titles (File Name, Target Folder, Confidence, AI Reasoning, Time, Action)." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 5 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🔄 Dynamic Undo Button State" FontSize="11" FontWeight="Bold" Foreground="#F59E0B"/>
-                                            <TextBlock Text="Undo Last button automatically disables and dims with faded opacity when no reversible moves are available." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 6 -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🎬 MP4 Video Thumbnail Extraction" FontSize="11" FontWeight="Bold" Foreground="#DC2626"/>
-                                            <TextBlock Text="Integrated native DirectShow/MediaFoundation frame grabber for video files, overcoming missing Windows Shell video thumbnail handlers." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Changelog Item 7 -->
+                                    <!-- Feature 7: 60 FPS Native Desktop Engine -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="🔗 iOS 26 Share Vector Icon" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
-                                            <TextBlock Text="Updated GitHub repository link card with official iOS-26 liquid-glass share vector geometry." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="⚡ Native 60 FPS Liquid Glass WPF UI" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                            <TextBlock Text="Direct3D hardware-accelerated desktop application with zero browser dependencies, zero web server overhead, and iOS-inspired design." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

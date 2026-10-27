@@ -1,96 +1,96 @@
 # SortiFile
 
-> **High-Performance Native 60 FPS Desktop File Sorting Agent (C# / .NET 9 WPF)**
+SortiFile is an autonomous, privacy-first desktop file organization engine built with C# and .NET 9 WPF. It runs locally with Direct3D hardware acceleration, featuring zero browser dependencies, zero web server overhead, and an iOS-inspired user interface.
 
-SortiFile is an autonomous, privacy-first desktop file organization engine built with native C# and .NET 9 WPF. It runs natively with Direct3D hardware acceleration at a buttery-smooth 60 FPS, featuring zero browser dependencies, zero web server overhead, and an iOS-inspired minimalist user interface.
-
-It monitors a designated incoming directory, safely detects newly created or downloaded files, extracts textual summaries, and leverages a local LLM via Ollama (`llama3:8b`, `qwen2.5:7b`, etc.) or smart heuristic routing to organize files into semantic target directories based on folder `.context.md` descriptions.
+The application monitors an incoming directory, safely detects newly created or downloaded files, extracts textual summaries and metadata, and leverages either a local Large Language Model via Ollama or a deterministic heuristic engine to organize files into categorized target directories based on folder context descriptions (.context.md).
 
 ---
 
-## Key Features
+## Features
 
-* **Native 60 FPS Desktop Experience (C# & WPF)**
-  * Direct3D hardware-accelerated rendering with fluid storyboard easing transitions.
-  * Completely eliminated UI flickering/blinking using reactive `ObservableCollection<T>` in-place UI bindings.
-  * iOS-inspired typography utilizing `Segoe UI Variable Display` and `SF Pro Text`.
-
-* **Native Windows Drag & Drop**
-  * Full OLE Windows drag-and-drop integration (`DragDropEffects.Copy`) directly from Windows Desktop or File Explorer.
-  * No "Circle with a dash" cursor errors — displays the standard Windows copy cursor (`+`) on hover.
-  * Also supports file picker selection via direct click.
-
-* **Complete Folder Management**
-  * **View & Copy Full Paths**: Every folder card prominently displays its exact path with a 1-click "Copy Path" button.
-  * **Open in File Explorer**: Instantly launch Windows File Explorer to any target folder or watch directory.
-  * **Safe Folder Deletion**: Delete unwanted target folders with automated safety migration — any existing files are automatically relocated to `Inbox` before directory removal.
-  * **Dynamic Taxonomy Editor**: Edit any folder's `.context.md` prompt directly in the app to refine AI classification.
-  * **Add Target Folders**: Dynamically create new target directories with automatic `.context.md` scaffolding.
-
-* **Observer & Safe Queue Engine**
-  * Native `FileSystemWatcher` event loop with a thread-safe concurrent queue.
-  * Multi-stage lock detection to prevent conflicts while files are downloading or being written by other apps.
-  * Automatic temporary and partial download file protection (`.crdownload`, `.tmp`, `~$*`).
-
-* **Text & Metadata Extraction**
-  * Extracts the first 200 words from `.docx` (Office XML extraction), `.pdf`, `.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.log`, and code files.
-  * Instant category tagging: `Text/Doc`, `Media/Binary`, or `Archive/Installer`.
-
-* **AI Routing & Intelligent Fallback**
-  * Local LLM routing via Ollama HTTP API (`/api/chat` with forced JSON schema).
-  * Strict confidence thresholding (default 75%): low confidence files safely land in `/Inbox`.
-  * Built-in Heuristic Fallback engine: works out of the box even when Ollama is offline or uninstalled.
-
-* **Collision Avoidance & Undo Engine**
-  * Collision-proof file mover (`filename (1).ext`).
-  * Action audit log saved to `sort_history.json`.
-  * One-click Revert / Undo functionality directly from the UI or CLI.
+- Autonomous Directory Observer: FileSystemWatcher background loop monitors incoming downloads with multi-stage file lock detection to prevent conflicts during active writes.
+- Dual-Engine Classification: Text and metadata extraction (.docx, .pdf, .txt, .md, images, videos) routed via local Ollama models or heuristic fallback matching .context.md taxonomy prompts.
+- Hardware-Accelerated Drag and Drop Canvas: Direct3D-accelerated viewport with immediate visual feedback for ad-hoc manual file organization.
+- Dynamic Folder Taxonomy Management: Hierarchical folder explorer with nested subfolder support, color tags, folder locking against automated moves, and in-app prompt editing.
+- Zero-Risk Audit History and 1-Click Undo: Full operation audit trail with active disk verification and single-click restoration of any moved file.
+- First-Time Guided Setup Wizard: Multi-step interactive onboarding for designating the incoming watch folder, configuring workspace paths, and scaffolding initial taxonomy.
 
 ---
 
-## Workspace Blueprint
+## Prerequisites
 
-```text
-/SortiFile_Workspace
-│
-├── /Inbox               # Fallback staging area for low confidence (<75%) or unclassified files
-│   └── .context.md
-├── /Documents           # Reports, notes, papers, text files, PDFs, essays
-│   └── .context.md      # Auto-generated taxonomy summary
-├── /Images              # Photos, screenshots, illustrations, wallpapers
-│   └── .context.md
-└── /Code_Projects       # Excluded from automated sorting
-    └── .context.md
-```
-
-Incoming files can be dropped into `Watch_Folder/` or dragged directly onto the dashboard drop zone.
+- Operating System: Windows 10 (version 1809 or higher) or Windows 11 (x64)
+- Runtime: .NET 9.0 Desktop Runtime (x64) or use the self-contained executable
+- Optional Local AI Backend: Ollama (http://127.0.0.1:11434) with models such as llama3:8b or qwen2.5:7b (the application falls back to built-in heuristic classification when Ollama is offline)
 
 ---
 
-## How to Run
+## Installation
 
-### Standalone Executable (No Browser, No Edge, No Webview)
-SortiFile is compiled as a self-contained single-file Windows executable:
+### Option 1: Standalone Release Executable
 
-* **Direct Executable:**
-  Download the Windows release, extract it, and double-click `SortiFile.exe` in the extracted folder.
+1. Navigate to the GitHub Releases section or download `SortiFile.exe` from the `releases/v1.0.0` folder.
+2. Place `SortiFile.exe` in a dedicated directory on your system.
+3. Launch `SortiFile.exe`. No additional setup or web browser installation is required.
 
-* **Or Batch File:**
-  Double-click `SortiFile.bat` in the root directory.
+### Option 2: Build from Source
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Pinnaclebc/SortiFile.git
+   cd SortiFile
+   ```
+
+2. Ensure .NET 9.0 SDK is installed:
+   ```bash
+   dotnet --version
+   ```
+
+3. Build the WPF application:
+   ```bash
+   dotnet build ./src-wpf/SortiFileWpf.csproj -c Release
+   ```
+
+4. Publish a self-contained single-file executable:
+   ```bash
+   dotnet publish ./src-wpf/SortiFileWpf.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ./releases/v1.0.0
+   ```
 
 ---
 
-## Building from Source
+## Usage
 
-To build or modify the C# WPF project:
+1. Complete Initial Setup: On first launch, follow the guided wizard to choose your incoming Watch Folder (for example, your browser Downloads folder) and your Workspace destination.
+2. Autonomous Organization: Place files in your designated incoming folder. SortiFile detects when writes finish, reads document content, matches it against folder context descriptions, and moves it to the appropriate subfolder.
+3. Drag and Drop: Drag any file directly onto the dashboard to inspect and sort it immediately.
+4. Customize Taxonomy: Open the Folders tab to view files, add new folders, or edit .context.md prompt descriptions to guide routing behavior.
+5. Audit and Undo: If a file is sorted incorrectly, click Undo Last or navigate to Sort History to revert any sorted item back to its origin.
 
-```powershell
-# Navigate to the cloned repository
-cd SortiFile
+---
 
-# Build in Debug mode
-dotnet build ./src-wpf/SortiFileWpf.csproj
+## Contributing
 
-# Publish standalone single-file executable
-dotnet publish ./src-wpf/SortiFileWpf.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o .
-```
+Contributions are welcome. To contribute:
+
+1. Fork the repository.
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m "Add feature description"
+   ```
+4. Push to the branch:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+5. Open a Pull Request on GitHub.
+
+Please ensure your code builds with zero compiler warnings and maintains privacy-first architecture principles.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

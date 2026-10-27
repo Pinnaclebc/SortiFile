@@ -1,4 +1,4 @@
-# Python
+# Python and virtual environments
 __pycache__/
 *.py[cod]
 *.pyo
@@ -9,33 +9,42 @@ __pycache__/
 venv/
 env/
 
+# Legacy prototype scripts and local utilities
+*.py
+build_exe.bat
+SortiFile.bat
+SortiFile.spec
+requirements.txt
+reset_app.py
+
 # Environment and local secrets
 .env
 .env.*
 !.env.example
 
-# Local application state
+# Local application state and databases
+config.json
 config.local.json
 sorti_history.db
 sorti_history.db-*
 sort_history.json
+Watch_Folder/
+SortiFile_Workspace/
+Sorti_Workspace/
 
-# Release-only and design assets
+# Release binaries and outputs (published via GitHub Releases)
 *.exe
-*.png
-*.svg
-
-# Local-only test and reset utilities
-tests/
-reset_app.py
-
-# Build and packaging output
+*.pdb
+releases/
 build/
 dist/
-*.spec.bak
-*.pdb
 
-# .NET
+# Design assets (whitelisting embedded WPF assets)
+*.png
+*.svg
+!src-wpf/Assets/**
+
+# .NET build outputs
 src-wpf/bin/
 src-wpf/obj/
 
@@ -48,5 +57,5 @@ src-wpf/obj/
 Thumbs.db
 Desktop.ini
 
-# Project-local changelog is maintained outside version control
+# Project-local changelog
 changelog.txt
