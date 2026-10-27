@@ -247,69 +247,60 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v1.0.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.1.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
                             </Border>
 
+                            <!-- Floating Bottom Action (Stays pinned at bottom no matter the scroll) -->
+                            <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,10" Background="#F8FAFC" CornerRadius="0,0,14,14">
+                                <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="0" HorizontalAlignment="Right" Click="OpenChangelogFile_Click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="View full changelog history" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentBrush}"/>
+                                        <TextBlock Text=" ↗" FontSize="12" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="2,-1,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </Border>
+
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ Main Features in v1.0.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Recent Changes in v1.1.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Feature 1: Autonomous Watch Folder -->
+                                    <!-- Recent Change 1: Subfolder Hierarchy & Context Inheritance -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="👁️ Autonomous Watch Folder &amp; Observer" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Real-time background monitoring for incoming downloads with multi-stage file lock detection and collision-proof routing." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="📁 Hierarchical Subfolders &amp; Inheritance" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Subfolders dynamically inherit parent taxonomy prompts while maintaining separate unique contexts on disk. Files matching subfolders route directly into them." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Feature 2: Dual AI & Heuristic Routing -->
+                                    <!-- Recent Change 2: High-Precision Backend Scoring -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🧠 Smart Content Classification" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Extracts text and metadata from documents, PDFs, media, and code using local Ollama LLMs or instant heuristic fallback matching .context.md prompts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🎯 High-Precision Scoring Engine" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Floating-point confidence scoring evaluates specific subfolder differentiators accurately while displaying clean whole-number percentages in the UI." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Feature 3: Drag & Drop Dashboard -->
+                                    <!-- Recent Change 3: PDF Stream Parsing & Multi-Format Routing -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="📥 Native Drag &amp; Drop Dashboard" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Full-height interactive drop zone for immediate file routing, manual sorting, and real-time classification feedback." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="📄 Native PDF Text Extraction &amp; Media" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Direct text operator extraction from PDFs without external dependencies, with dedicated disambiguation across Videos, Audio, Spreadsheets, and Archives." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Feature 4: Folder Management & Taxonomy -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🗂️ Interactive Taxonomy &amp; Folder Management" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Explore nested subfolder trees, customize folder color badges, lock folders from auto-sorting, and edit .context.md prompts directly." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Feature 5: Zero-Risk Undo Engine -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="↺ Zero-Risk Audit Log &amp; 1-Click Undo" FontSize="11" FontWeight="Bold" Foreground="#EA580C"/>
-                                            <TextBlock Text="Complete audit trail with disk-verified state tracking and single-click restoration of any moved file." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Feature 6: Guided Setup Wizard -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🧙‍♂️ Guided First-Time Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#0284C7"/>
-                                            <TextBlock Text="Interactive multi-step setup to choose incoming watch folder, configure workspace storage, and scaffold initial taxonomy prompts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Feature 7: 60 FPS Native Desktop Engine -->
+                                    <!-- Recent Change 4: Lazy 1-3 Word Context Matching -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="⚡ Native 60 FPS Liquid Glass WPF UI" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
-                                            <TextBlock Text="Direct3D hardware-accelerated desktop application with zero browser dependencies, zero web server overhead, and iOS-inspired design." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🔍 Resilient Stemming for Minimal Context" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Automated suffix and plural normalization allows brief 1 to 3 word subfolder prompts (e.g. 'aws bills', 'contracts') to be matched with high accuracy." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

@@ -2401,6 +2401,22 @@ namespace SortiFileWpf
             }
         }
 
+        private void OpenChangelogFile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "https://github.com/Pinnaclebc/SortiFile/blob/main/changelog.txt",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                CustomDialog.Show(this, "Error", $"Could not open changelog file:\n{ex.Message}");
+            }
+        }
+
         // ==================== SETTINGS OPERATIONS & TUTORIAL ====================
 
         private void ShowOllamaTutorial_Click(object sender, MouseButtonEventArgs e)
