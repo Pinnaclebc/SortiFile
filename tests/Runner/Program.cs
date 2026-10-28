@@ -345,14 +345,17 @@ namespace Runner
             Console.Write("[Feature 5] Folder Tree Reset: ");
             int initialCount = engine.Config.RegisteredFolders.Count;
             engine.Config.RegisteredFolders.Clear();
-            bool treeReset = engine.Config.RegisteredFolders.Count == 0 && Directory.Exists(existingPath);
+            engine.Config.WorkspaceDir = "";
+            engine.FolderPaths.Clear();
+            var resetContexts = engine.LoadContexts();
+            bool treeReset = engine.Config.RegisteredFolders.Count == 0 && resetContexts.Count <= 1 && Directory.Exists(existingPath);
             if (treeReset && initialCount > 0)
             {
-                Console.WriteLine($"PASSED (All {initialCount} registered folders unregistered from tree; disk files remained intact)");
+                Console.WriteLine($"PASSED (All {initialCount} registered folders unregistered from tree; no resurrection; disk files remained intact)");
             }
             else
             {
-                Console.WriteLine("FAILED (Tree reset failed or disk files affected)");
+                Console.WriteLine($"FAILED (Tree reset failed: count={engine.Config.RegisteredFolders.Count}, contexts={resetContexts.Count})");
             }
         }
 

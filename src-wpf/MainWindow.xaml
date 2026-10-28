@@ -247,7 +247,7 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v1.3.2" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.3.3" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -270,29 +270,21 @@
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ Recent Changes in v1.3.2" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Recent Changes in v1.3.3" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Recent Change 1: Locked Folder Routing Guardrail Intercept -->
+                                    <!-- Recent Change 1: Folder Tree Reset Fix -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🔒 Locked Folder Routing Guardrail Intercept" FontSize="11" FontWeight="Bold" Foreground="#DC2626"/>
-                                            <TextBlock Text="Ensures locked destination folders are actively intercepted during routing, safely diverting files into the registered Inbox with explanatory audit reasons." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🗑️ Complete Folder Tree Reset &amp; Workspace Decoupling" FontSize="11" FontWeight="Bold" Foreground="#DC2626"/>
+                                            <TextBlock Text="Fixed an issue where legacy workspace fallback resurrected unregistered folders after tree reset. Tree now resets completely to an empty state." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 2: Dynamic Local Ollama Model Resolution -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🧠 Dynamic Local Ollama Model Resolution &amp; Prompt Tuning" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Auto-discovers installed models via /api/tags, supports flexible string/float confidence scores, and tunes decision prompt for 100% routing accuracy." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Recent Change 3: Heuristic Keyword Isolation & Binary Guard -->
+                                    <!-- Recent Change 2: Empty Tree State Indicator -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="⚡ Keyword Isolation &amp; Binary File Protection" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Added context template stop words to eliminate keyword bleed, tuned subfolder competition scoring, and prevented unknown binary formats from matching text documents." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="📁 Folder Tree Empty State Display" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Added a clean placeholder inside the folder tree view when no folders are registered, guiding users to click Add+ to add target destinations." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
@@ -349,6 +341,15 @@
 
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="10,8">
+                                <!-- Empty state when no folders are registered -->
+                                <Border x:Name="BorderEmptyFolderTree" Visibility="Collapsed" Padding="12,32" HorizontalAlignment="Center">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="📁" FontSize="26" HorizontalAlignment="Center" Margin="0,0,0,8" Opacity="0.4"/>
+                                        <TextBlock Text="No folders registered" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Click 'Add+' above to register folders" FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <ItemsControl x:Name="ListFolderTree">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

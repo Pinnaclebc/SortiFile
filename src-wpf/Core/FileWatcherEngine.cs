@@ -330,15 +330,6 @@ namespace SortiFileWpf.Core
                     ScanRegisteredSubContexts(rootName, folderPath, folderPath, rawDict);
                 }
             }
-            else
-            {
-                // Fallback for workspaces if registered folders list is empty
-                string ws = Config.ResolvePath(Config.WorkspaceDir);
-                if (Directory.Exists(ws))
-                {
-                    ScanContextsRecursive(ws, ws, rawDict);
-                }
-            }
 
             // Compute dynamic context inheritance for subfolders (ordered by depth so parents resolve first)
             var effectiveDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

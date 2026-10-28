@@ -11,7 +11,7 @@ namespace SortiFileWpf.Models
         public string WatchDir { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Watch_Folder");
 
         [JsonPropertyName("workspace_dir")]
-        public string WorkspaceDir { get; set; } = "SortiFile_Workspace";
+        public string WorkspaceDir { get; set; } = "";
 
         [JsonPropertyName("registered_folders")]
         public System.Collections.Generic.List<string> RegisteredFolders { get; set; } = new();

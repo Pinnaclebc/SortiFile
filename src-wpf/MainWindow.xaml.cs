@@ -208,25 +208,6 @@ namespace SortiFileWpf
                 }
             }
 
-            // Fallback for existing workspaces if registered folders list is empty
-            if (rootDirs.Count == 0 && !string.IsNullOrWhiteSpace(_engine.Config.WorkspaceDir))
-            {
-                string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
-                if (Directory.Exists(ws))
-                {
-                    var legacyDirs = Directory.GetDirectories(ws).Where(d => !Path.GetFileName(d).StartsWith(".")).ToList();
-                    foreach (var ld in legacyDirs)
-                    {
-                        if (!_engine.Config.RegisteredFolders.Contains(ld, StringComparer.OrdinalIgnoreCase))
-                        {
-                            _engine.Config.RegisteredFolders.Add(ld);
-                            rootDirs.Add(ld);
-                        }
-                    }
-                    if (rootDirs.Count > 0) _engine.Config.Save();
-                }
-            }
-
             if (_engine.Config.FolderOrder != null && _engine.Config.FolderOrder.Count > 0)
             {
                 rootDirs = rootDirs
@@ -247,6 +228,11 @@ namespace SortiFileWpf
             for (int i = 0; i < rootDirs.Count; i++)
             {
                 ScanDirectoryRecursive(rootDirs[i], rootDirs[i], 0, null, "", i == rootDirs.Count - 1, defaultColors);
+            }
+
+            if (BorderEmptyFolderTree != null)
+            {
+                BorderEmptyFolderTree.Visibility = FolderItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
 
             // Restore selection or select first
@@ -2345,11 +2331,18 @@ namespace SortiFileWpf
                     if (_engine.Config.FolderOrder != null) _engine.Config.FolderOrder.Clear();
                     if (_engine.Config.FolderColors != null) _engine.Config.FolderColors.Clear();
                     if (_engine.Config.LockedFolders != null) _engine.Config.LockedFolders.Clear();
+                    _engine.Config.WorkspaceDir = "";
                     _engine.Config.Save();
+
+                    _selectedFolder = null;
+                    _anchorFolder = null;
+                    _multiSelectedFolders.Clear();
+                    _collapsedFolderPaths.Clear();
 
                     _engine.FolderPaths.Clear();
                     _engine.LoadContexts();
                     RefreshFolders();
+                    SelectFolder(null);
                     UpdateStats();
 
                     ShowNotificationToast("Folder Tree Reset", "All registered folders have been removed from the tree. Files on disk remain untouched.", "🗑️", 3500);
