@@ -247,7 +247,7 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v1.2.1" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.3.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -270,37 +270,37 @@
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ Recent Changes in v1.2.1" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Recent Changes in v1.3.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Recent Change 1: Multi-Select Right-Click Fix -->
+                                    <!-- Recent Change 1: Registered Folders Architecture -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🌲 Tree Multi-Select Right-Click Context Menu" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Fixed right-click unselecting highlighted folders. Right-clicking any multi-selected folder preserves the range selection and reliably opens bulk options." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🌲 Registered Folders Architecture (Workspace Decoupled)" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Removed centralized Workspace folder dependency. SortiFile now directly manages explicitly registered folders located anywhere on your drives without copying files." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 2: Triple-Dot Drag Lock -->
+                                    <!-- Recent Change 2: Duplicate Folder Validation Checker -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🔒 Triple-Dot Order &amp; Reorder Drag Lock" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Clicking folder options or Shift-clicking now resets drag state and locks against accidental drag-drop reordering, keeping folder hierarchy order intact." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🛡️ Duplicate Folder Validation Checker" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Built-in validation checks in both Setup Wizard and Folders tab preventing duplicate folder registrations, surfacing dedicated custom modal alerts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 3: Destination Locations Cleanup -->
+                                    <!-- Recent Change 3: Reset Folder Tree with Typed Confirmation -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="📍 Streamlined Folder Destination Locations" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Removed the legacy Root Workspace destination option in Add+ dialog, focusing destination choices on dedicated sub-folders or custom target paths." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🗑️ Folder Tree Reset with Typed Confirmation" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Added Settings option to unregister all folders from the tree requiring explicit typed 'confirm' verification. All files and directories on disk remain completely safe." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 4: Exclude config.json from Git Tracking -->
+                                    <!-- Recent Change 4: Desktop Defaults & Streamlined Setup -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="⚙️ Auto-Generated Configuration Untracking" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Excluded local auto-generated config.json from git index and remote repository tracking, maintaining clean environment independence." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🖥️ Desktop Defaults &amp; Streamlined Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Default watch and generated folders now target the Desktop. Removed redundant storage cards in wizard and settings for a clean user flow." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
@@ -900,19 +900,32 @@
                                     <Button Content="📂 Open" Style="{StaticResource ModernBtn}" Tag="{Binding ElementName=TxtWatchDir, Path=Text}" Click="OpenExplorer_Click" Margin="6,0,0,0" ToolTip="Open folder in File Explorer"/>
                                 </StackPanel>
                             </Grid>
+                        </StackPanel>
+                    </Border>
 
-                            <!-- Reset Directories Option Card -->
-                            <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,4,0,0">
+                    <!-- Folder Tree Management Card -->
+                    <Border Background="#FFFFFF" CornerRadius="14" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="24" Margin="0,0,0,16" Effect="{StaticResource CardShadow}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Folder Tree Management" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <TextBlock Text="Manage active registered folders in your SortiFile taxonomy tree." FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="🗑️ Reset Folder Tree" Style="{StaticResource ModernBtn}" Foreground="#DC2626" FontSize="11" Padding="12,6" Click="ResetFolderTree_Click" VerticalAlignment="Center" ToolTip="Unregister all folders from SortiFile tree (leaves files and folders on disk intact)"/>
+                            </Grid>
+
+                            <Border Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,6,0,0">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                        <TextBlock Text="↺ Reset Watch Directory to Default" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                                        <TextBlock Text="Reverts Incoming Watch Directory to default 'Watch_Folder'." FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="1" Content="Reset to Default" Style="{StaticResource ModernBtn}" FontSize="11" Padding="14,6" Click="ResetDirectories_Click" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="ℹ️" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Resetting the folder tree unregisters all folders from SortiFile. No folders or files on your computer will be deleted or modified." FontSize="10.5" Foreground="#991B1B" TextWrapping="Wrap" VerticalAlignment="Center"/>
                                 </Grid>
                             </Border>
                         </StackPanel>

@@ -59,7 +59,6 @@ namespace SortiFileWpf
         private readonly List<InitialFolderItem> _initialFolders = new List<InitialFolderItem>();
         private readonly StackPanel _initialFoldersContainer;
         private readonly TextBlock _txtFoldersCount;
-        private readonly TextBlock _txtDefaultLocation;
 
         // Bottom navigation buttons
         private readonly Button _btnNavBack;
@@ -69,8 +68,9 @@ namespace SortiFileWpf
         {
             _mainWindow = mainWindow;
             _engine = engine;
-            _selectedWatchPath = _engine.Config.WatchDir;
-            _defaultFolderLocation = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
+            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            _selectedWatchPath = Path.Combine(desktopPath, "Watch_Folder");
+            _defaultFolderLocation = desktopPath;
 
             Title = "SortiFile - Welcome & Setup Wizard";
             WindowStyle = WindowStyle.None;
@@ -260,8 +260,9 @@ namespace SortiFileWpf
             step2Stack.Children.Add(s2Title);
             step2Stack.Children.Add(s2Desc);
 
-            _watchCardDefault = CreateOptionCard("📁", "Standard Watch Folder (Recommended)", "Dedicated 'Watch_Folder' directory created inside your SortiFile app directory.", true);
-            _watchCardDefault.MouseDown += (s, e) => { SelectWatchOption("Watch_Folder", _watchCardDefault); };
+            string defaultDesktopWatch = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Watch_Folder");
+            _watchCardDefault = CreateOptionCard("📁", "Desktop Watch Folder (Recommended)", $"Dedicated 'Watch_Folder' created on your Desktop:\n{defaultDesktopWatch}", true);
+            _watchCardDefault.MouseDown += (s, e) => { SelectWatchOption(defaultDesktopWatch, _watchCardDefault); };
             step2Stack.Children.Add(_watchCardDefault);
 
             string downloadsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
@@ -396,70 +397,6 @@ namespace SortiFileWpf
             skipBanner.Child = skipGrid;
             step3Stack.Children.Add(skipBanner);
 
-            // Default Folder Destination Location bar
-            var defLocPill = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12, 8, 12, 8),
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-            var defLocGrid = new Grid();
-            defLocGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            defLocGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-            var defLocStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            defLocStack.Children.Add(new TextBlock
-            {
-                Text = "DEFAULT FOLDER STORAGE DESTINATION:",
-                FontSize = 9.5,
-                FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B))
-            });
-            _txtDefaultLocation = new TextBlock
-            {
-                Text = _defaultFolderLocation,
-                FontSize = 11,
-                FontFamily = new FontFamily("Consolas"),
-                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, 2, 0, 0)
-            };
-            defLocStack.Children.Add(_txtDefaultLocation);
-            Grid.SetColumn(defLocStack, 0);
-            defLocGrid.Children.Add(defLocStack);
-
-            var btnChangeDefaultLoc = new Button
-            {
-                Content = "Change Location...",
-                Style = (Style)Application.Current.FindResource("ModernBtn"),
-                FontSize = 10.5,
-                Padding = new Thickness(10, 4, 10, 4),
-                Cursor = Cursors.Hand,
-                VerticalAlignment = VerticalAlignment.Center,
-                ToolTip = "Select where newly created folders will be stored by default"
-            };
-            btnChangeDefaultLoc.Click += (s, e) =>
-            {
-                var dlg = new OpenFolderDialog
-                {
-                    Title = "Select Destination for Target Folders",
-                    InitialDirectory = _defaultFolderLocation
-                };
-                if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.FolderName))
-                {
-                    _defaultFolderLocation = dlg.FolderName;
-                    _txtDefaultLocation.Text = _defaultFolderLocation;
-                    RenderInitialFolderCards();
-                }
-            };
-            Grid.SetColumn(btnChangeDefaultLoc, 1);
-            defLocGrid.Children.Add(btnChangeDefaultLoc);
-            defLocPill.Child = defLocGrid;
-            step3Stack.Children.Add(defLocPill);
-
             // Folders header with Clear All, Add Existing, and Add New buttons
             var foldersHeaderGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
             foldersHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -533,34 +470,39 @@ namespace SortiFileWpf
             _initialFoldersContainer = new StackPanel();
             step3Stack.Children.Add(_initialFoldersContainer);
 
-            // Initialize default folders list
+            // Initialize default folders list targeting Desktop
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             _initialFolders.Add(new InitialFolderItem
             {
                 Name = "Documents",
                 Context = "General written documents, reports, text files, articles, PDF papers, meeting notes, essays, spreadsheets, and educational or business documentation.",
                 Icon = "📄",
-                IsRemovable = true
+                IsRemovable = true,
+                TargetLocation = Path.Combine(desktop, "Documents")
             });
             _initialFolders.Add(new InitialFolderItem
             {
                 Name = "Images",
                 Context = "Photographs, graphic designs, screenshots, illustrations, wallpapers, and visual media assets in PNG, JPG, WEBP, or SVG formats.",
                 Icon = "🖼️",
-                IsRemovable = true
+                IsRemovable = true,
+                TargetLocation = Path.Combine(desktop, "Images")
             });
             _initialFolders.Add(new InitialFolderItem
             {
                 Name = "Code_Projects",
                 Context = "Excluded from automated sorting. Contains programming source code, repositories, scripts, and software build artifacts.",
                 Icon = "💻",
-                IsRemovable = true
+                IsRemovable = true,
+                TargetLocation = Path.Combine(desktop, "Code_Projects")
             });
             _initialFolders.Add(new InitialFolderItem
             {
                 Name = "Inbox",
                 Context = "Default staging area for unclassified files, low confidence routing (< 75%), or unknown binary formats requiring manual review.",
                 Icon = "📥",
-                IsRemovable = false // Standard fallback
+                IsRemovable = false, // Standard fallback
+                TargetLocation = Path.Combine(desktop, "Inbox")
             });
 
             RenderInitialFolderCards();
@@ -1062,9 +1004,17 @@ namespace SortiFileWpf
             if (dlg.ShowDialog() == true)
             {
                 string name = dlg.FolderName;
-                if (_initialFolders.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                string loc = !string.IsNullOrWhiteSpace(dlg.TargetLocation) ? dlg.TargetLocation : Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                string fullPath = Path.Combine(loc, name);
+
+                // Validation checker: checks if folder is already in the database/tree
+                bool alreadyExists = _initialFolders.Any(f =>
+                    f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(f.TargetLocation) && Path.GetFullPath(f.TargetLocation).TrimEnd('\\', '/').Equals(Path.GetFullPath(fullPath).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase)));
+
+                if (alreadyExists)
                 {
-                    CustomDialog.Show(this, "Duplicate Name", $"A folder named '{name}' already exists in the list.");
+                    CustomDialog.Show(this, "Folder Already Added", $"A folder named '{name}' is already included in your initial folder setup:\n\n{fullPath}\n\nDuplicate folders cannot be added.");
                     return;
                 }
 
@@ -1074,7 +1024,7 @@ namespace SortiFileWpf
                     Context = dlg.ContextPrompt,
                     Icon = "📁",
                     IsRemovable = true,
-                    TargetLocation = _defaultFolderLocation
+                    TargetLocation = fullPath
                 });
                 _isSkippedInitialFolders = false;
                 RenderInitialFolderCards();
@@ -1090,13 +1040,18 @@ namespace SortiFileWpf
             };
             if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.FolderName))
             {
-                string dirPath = dlg.FolderName;
+                string dirPath = Path.GetFullPath(dlg.FolderName).TrimEnd('\\', '/');
                 string name = Path.GetFileName(dirPath);
                 if (string.IsNullOrWhiteSpace(name)) name = dirPath;
 
-                if (_initialFolders.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                // Validation checker: checks if folder is already in the database/tree
+                bool alreadyExists = _initialFolders.Any(f =>
+                    f.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(f.TargetLocation) && Path.GetFullPath(f.TargetLocation).TrimEnd('\\', '/').Equals(dirPath, StringComparison.OrdinalIgnoreCase)));
+
+                if (alreadyExists)
                 {
-                    CustomDialog.Show(this, "Duplicate Name", $"A folder named '{name}' already exists in the list.");
+                    CustomDialog.Show(this, "Folder Already Added", $"The folder '{name}' is already in your initial folder setup:\n\n{dirPath}\n\nDuplicate folders cannot be added.");
                     return;
                 }
 
@@ -1126,7 +1081,7 @@ namespace SortiFileWpf
                         Context = editDlg.ContextText,
                         Icon = "📁",
                         IsRemovable = true,
-                        TargetLocation = Path.GetDirectoryName(dirPath) ?? _defaultFolderLocation
+                        TargetLocation = dirPath
                     });
                     _isSkippedInitialFolders = false;
                     RenderInitialFolderCards();
@@ -1139,25 +1094,22 @@ namespace SortiFileWpf
             try
             {
                 _engine.Config.WatchDir = _selectedWatchPath;
-                _engine.Config.WorkspaceDir = _defaultFolderLocation;
                 _engine.Config.IsFirstRunCompleted = true;
-                _engine.Config.Save();
 
-                string defaultWs = _engine.Config.ResolvePath(_defaultFolderLocation);
-                if (!Directory.Exists(defaultWs)) Directory.CreateDirectory(defaultWs);
+                if (_engine.Config.RegisteredFolders == null)
+                    _engine.Config.RegisteredFolders = new List<string>();
 
-                if (_isSkippedInitialFolders || _initialFolders == null || _initialFolders.Count == 0)
-                {
-                    _engine.EnsureWorkspaceStructure();
-                }
-                else
+                _engine.Config.RegisteredFolders.Clear();
+
+                if (!_isSkippedInitialFolders && _initialFolders != null && _initialFolders.Count > 0)
                 {
                     foreach (var item in _initialFolders)
                     {
                         if (string.IsNullOrWhiteSpace(item.Name)) continue;
-                        string destDir = !string.IsNullOrWhiteSpace(item.TargetLocation) ? item.TargetLocation : defaultWs;
-                        if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
-                        string folderPath = Path.Combine(destDir, item.Name);
+                        string folderPath = !string.IsNullOrWhiteSpace(item.TargetLocation)
+                            ? item.TargetLocation
+                            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), item.Name);
+
                         if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
 
                         string ctxFile = Path.Combine(folderPath, ".context.md");
@@ -1165,21 +1117,19 @@ namespace SortiFileWpf
                             ? $"# {item.Name} Context\n\nFiles and documents relevant to {item.Name}.\n"
                             : (item.Context.StartsWith("#") ? item.Context : $"# {item.Name} Context\n\n{item.Context}\n");
                         try { File.WriteAllText(ctxFile, ctxContent); } catch { }
-                    }
 
-                    // Ensure fallback Inbox always exists
-                    string inbox = Path.Combine(defaultWs, "Inbox");
-                    if (!Directory.Exists(inbox))
-                    {
-                        Directory.CreateDirectory(inbox);
-                        string inboxCtx = Path.Combine(inbox, ".context.md");
-                        if (!File.Exists(inboxCtx))
+                        if (!_engine.Config.RegisteredFolders.Contains(folderPath, StringComparer.OrdinalIgnoreCase))
                         {
-                            try { File.WriteAllText(inboxCtx, "# Inbox Context\n\nDefault staging area for unclassified files, low confidence routing (< 75%), or unknown binary formats requiring manual review.\n"); } catch { }
+                            _engine.Config.RegisteredFolders.Add(folderPath);
                         }
                     }
                 }
+                else
+                {
+                    _engine.EnsureWorkspaceStructure();
+                }
 
+                _engine.Config.Save();
                 _engine.RestartWatcher();
                 _mainWindow.TxtWatchDir.Text = _selectedWatchPath;
                 _mainWindow.RefreshFolders();
@@ -1199,16 +1149,18 @@ namespace SortiFileWpf
     public class AddInitialFolderDialog : Window
     {
         private readonly TextBox _txtName;
+        private readonly TextBox _txtLocation;
         private readonly TextBox _txtContext;
 
         public string FolderName => _txtName.Text.Trim();
+        public string TargetLocation => _txtLocation.Text.Trim();
         public string ContextPrompt => _txtContext.Text.Trim();
 
         public AddInitialFolderDialog()
         {
             Title = "Add Initial Target Folder";
-            Width = 460;
-            Height = 350;
+            Width = 480;
+            Height = 420;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC));
             FontFamily = (FontFamily)Application.Current.FindResource("IosFontFamily");
@@ -1235,7 +1187,7 @@ namespace SortiFileWpf
 
             var desc = new TextBlock
             {
-                Text = "Specify the folder name and mandatory classification context. The local AI classifier uses this description to sort files.",
+                Text = "Specify the folder name, target destination path on your drive, and mandatory classification context.",
                 FontSize = 11,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
                 TextWrapping = TextWrapping.Wrap,
@@ -1267,6 +1219,59 @@ namespace SortiFileWpf
 
             inputsPanel.Children.Add(new TextBlock
             {
+                Text = "TARGET DESTINATION LOCATION:",
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                Margin = new Thickness(0, 0, 0, 4)
+            });
+
+            var locGrid = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            locGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            locGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            _txtLocation = new TextBox
+            {
+                Height = 32,
+                FontSize = 11,
+                FontFamily = new FontFamily("Consolas"),
+                Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                Padding = new Thickness(8, 5, 8, 5),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(_txtLocation, 0);
+            locGrid.Children.Add(_txtLocation);
+
+            var btnBrowseLoc = new Button
+            {
+                Content = "Browse...",
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                FontSize = 10.5,
+                Padding = new Thickness(10, 4, 10, 4),
+                Height = 32,
+                Margin = new Thickness(8, 0, 0, 0),
+                Cursor = Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            btnBrowseLoc.Click += (s, e) =>
+            {
+                var dlg = new OpenFolderDialog
+                {
+                    Title = "Select Destination Location for New Folder",
+                    InitialDirectory = !string.IsNullOrWhiteSpace(_txtLocation.Text) ? _txtLocation.Text : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                };
+                if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.FolderName))
+                {
+                    _txtLocation.Text = dlg.FolderName;
+                }
+            };
+            Grid.SetColumn(btnBrowseLoc, 1);
+            locGrid.Children.Add(btnBrowseLoc);
+            inputsPanel.Children.Add(locGrid);
+
+            inputsPanel.Children.Add(new TextBlock
+            {
                 Text = "TAXONOMY DESCRIPTION (.context.md prompt - MANDATORY):",
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
@@ -1276,7 +1281,7 @@ namespace SortiFileWpf
 
             _txtContext = new TextBox
             {
-                Height = 70,
+                Height = 65,
                 FontSize = 11,
                 Padding = new Thickness(8, 6, 8, 6),
                 AcceptsReturn = true,

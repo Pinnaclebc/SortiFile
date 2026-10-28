@@ -184,8 +184,6 @@ namespace SortiFileWpf
             _collapsedFolderPaths.RemoveWhere(p => !Directory.Exists(p));
 
             FolderItems.Clear();
-            string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
-            if (!Directory.Exists(ws)) Directory.CreateDirectory(ws);
 
             var defaultColors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -195,10 +193,39 @@ namespace SortiFileWpf
                 { "Code_Projects", "#3B82F6" }// Blue
             };
 
-            // Recursively scan all directories starting from root
-            var rootDirs = Directory.GetDirectories(ws)
-                .Where(d => !Path.GetFileName(d).StartsWith("."))
-                .ToList();
+            if (_engine.Config.RegisteredFolders == null)
+            {
+                _engine.Config.RegisteredFolders = new List<string>();
+            }
+
+            var rootDirs = new List<string>();
+            foreach (var reg in _engine.Config.RegisteredFolders)
+            {
+                string resolved = _engine.Config.ResolvePath(reg);
+                if (Directory.Exists(resolved) && !rootDirs.Contains(resolved, StringComparer.OrdinalIgnoreCase))
+                {
+                    rootDirs.Add(resolved);
+                }
+            }
+
+            // Fallback for existing workspaces if registered folders list is empty
+            if (rootDirs.Count == 0 && !string.IsNullOrWhiteSpace(_engine.Config.WorkspaceDir))
+            {
+                string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
+                if (Directory.Exists(ws))
+                {
+                    var legacyDirs = Directory.GetDirectories(ws).Where(d => !Path.GetFileName(d).StartsWith(".")).ToList();
+                    foreach (var ld in legacyDirs)
+                    {
+                        if (!_engine.Config.RegisteredFolders.Contains(ld, StringComparer.OrdinalIgnoreCase))
+                        {
+                            _engine.Config.RegisteredFolders.Add(ld);
+                            rootDirs.Add(ld);
+                        }
+                    }
+                    if (rootDirs.Count > 0) _engine.Config.Save();
+                }
+            }
 
             if (_engine.Config.FolderOrder != null && _engine.Config.FolderOrder.Count > 0)
             {
@@ -206,7 +233,7 @@ namespace SortiFileWpf
                     .OrderBy(d =>
                     {
                         string name = Path.GetFileName(d);
-                        int idx = _engine.Config.FolderOrder.FindIndex(o => o.Equals(name, StringComparison.OrdinalIgnoreCase));
+                        int idx = _engine.Config.FolderOrder.FindIndex(o => o.Equals(name, StringComparison.OrdinalIgnoreCase) || o.Equals(d, StringComparison.OrdinalIgnoreCase));
                         return idx >= 0 ? idx : 10000;
                     })
                     .ThenBy(d => Path.GetFileName(d))
@@ -219,7 +246,7 @@ namespace SortiFileWpf
 
             for (int i = 0; i < rootDirs.Count; i++)
             {
-                ScanDirectoryRecursive(ws, rootDirs[i], 0, null, "", i == rootDirs.Count - 1, defaultColors);
+                ScanDirectoryRecursive(rootDirs[i], rootDirs[i], 0, null, "", i == rootDirs.Count - 1, defaultColors);
             }
 
             // Restore selection or select first
@@ -231,6 +258,10 @@ namespace SortiFileWpf
 
                 SelectFolder(target ?? FolderItems[0]);
             }
+            else
+            {
+                SelectFolder(null);
+            }
         }
 
         private void ScanDirectoryRecursive(string wsRoot, string currentDir, int depth, FolderInfo? parentInfo, string parentColor, bool isLastSibling, Dictionary<string, string> defaultColors)
@@ -238,19 +269,36 @@ namespace SortiFileWpf
             string name = Path.GetFileName(currentDir);
             if (name.StartsWith(".")) return;
 
-            string relPath = Path.GetRelativePath(wsRoot, currentDir);
+            string relPath;
+            if (depth == 0)
+            {
+                relPath = name;
+            }
+            else
+            {
+                string subRel = Path.GetRelativePath(wsRoot, currentDir).Replace('\\', '/');
+                relPath = $"{Path.GetFileName(wsRoot)}/{subRel}";
+            }
+
             string ctxFile = Path.Combine(currentDir, ".context.md");
+            string ctxFileAlt = Path.Combine(currentDir, "context.md");
             string ctxText = "";
             if (File.Exists(ctxFile))
             {
                 try { ctxText = File.ReadAllText(ctxFile); } catch { }
+            }
+            else if (File.Exists(ctxFileAlt))
+            {
+                try { ctxText = File.ReadAllText(ctxFileAlt); } catch { }
             }
 
             int count = 0;
             try
             {
                 count = Directory.GetFiles(currentDir)
-                    .Count(f => !Path.GetFileName(f).Equals(".context.md", StringComparison.OrdinalIgnoreCase) && !Path.GetFileName(f).StartsWith("."));
+                    .Count(f => !Path.GetFileName(f).Equals(".context.md", StringComparison.OrdinalIgnoreCase) &&
+                                !Path.GetFileName(f).Equals("context.md", StringComparison.OrdinalIgnoreCase) &&
+                                !Path.GetFileName(f).StartsWith("."));
             }
             catch { }
 
@@ -355,12 +403,29 @@ namespace SortiFileWpf
             }
         }
 
-        public void SelectFolder(FolderInfo folder)
+        public void SelectFolder(FolderInfo? folder)
         {
             _selectedFolder = folder;
             foreach (var f in FolderItems)
             {
                 f.IsSelected = (f == folder);
+            }
+
+            if (folder == null)
+            {
+                TxtOverviewFolderName.Text = "No Folder Selected";
+                TxtOverviewCountBadge.Text = "0 files";
+                TxtOverviewContext.Text = "No registered folders in the folder tree.";
+                BadgeFolderOverview.Background = Brushes.Transparent;
+                BtnOverviewDelete.Visibility = Visibility.Collapsed;
+                BtnOverviewLock.Content = "Lock";
+
+                TxtSelectedFolderCount.Text = "0 files";
+                TxtSelectedFolderPath.Text = "None";
+
+                PanelOverviewColors.Children.Clear();
+                SelectedFolderFiles.Clear();
+                return;
             }
 
             TxtOverviewFolderName.Text = folder.Name;
@@ -1167,8 +1232,9 @@ namespace SortiFileWpf
 
             try
             {
-                string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
-                string inbox = Path.Combine(ws, "Inbox");
+                string inbox = _engine.FolderPaths.TryGetValue("Inbox", out string? resolvedInbox)
+                    ? resolvedInbox
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Inbox");
                 if (!Directory.Exists(inbox)) Directory.CreateDirectory(inbox);
 
                 int migratedFiles = 0;
@@ -1187,8 +1253,22 @@ namespace SortiFileWpf
 
                         try { Directory.Delete(folder.FullPath, true); } catch { }
                     }
+
+                    if (_engine.Config.RegisteredFolders != null)
+                    {
+                        string normDel = Path.GetFullPath(folder.FullPath).TrimEnd('\\', '/');
+                        _engine.Config.RegisteredFolders.RemoveAll(r => Path.GetFullPath(r).TrimEnd('\\', '/').Equals(normDel, StringComparison.OrdinalIgnoreCase));
+                    }
+                    if (_engine.Config.FolderColors != null)
+                    {
+                        _engine.Config.FolderColors.Remove(folder.Name);
+                        _engine.Config.FolderColors.Remove(folder.RelativePath);
+                    }
+                    _collapsedFolderPaths.Remove(folder.FullPath);
                 }
 
+                _engine.Config.Save();
+                _engine.LoadContexts();
                 RefreshFolders();
                 UpdateStats();
                 CustomDialog.Show(this, "Folders Deleted", $"Deleted {deletable.Count} folders. {migratedFiles} files safely preserved in Inbox.");
@@ -2219,11 +2299,12 @@ namespace SortiFileWpf
 
         private void ResetDirectories_Click(object sender, RoutedEventArgs e)
         {
+            string defaultWatch = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Watch_Folder");
             bool confirm = CustomDialog.Confirm(
                 this,
                 "Reset Watch Directory",
                 "Are you sure you want to reset the incoming watch directory back to factory default?\n\n" +
-                "• Incoming Watch Directory: Watch_Folder\n\n" +
+                $"• Incoming Watch Directory:\n  {defaultWatch}\n\n" +
                 "SortiFile will restart monitoring the default incoming folder.",
                 isDestructive: false,
                 confirmBtnText: "Reset to Default");
@@ -2232,7 +2313,7 @@ namespace SortiFileWpf
             {
                 try
                 {
-                    _engine.Config.WatchDir = "Watch_Folder";
+                    _engine.Config.WatchDir = defaultWatch;
                     _engine.Config.Save();
 
                     _engine.EnsureWorkspaceStructure();
@@ -2246,6 +2327,36 @@ namespace SortiFileWpf
                 catch (Exception ex)
                 {
                     CustomDialog.Show(this, "Reset Error", $"Failed to reset watch directory:\n{ex.Message}");
+                }
+            }
+        }
+
+        private void ResetFolderTree_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new ResetFolderTreeDialog { Owner = this };
+            if (dlg.ShowDialog() == true && dlg.IsConfirmed)
+            {
+                try
+                {
+                    if (_engine.Config.RegisteredFolders != null)
+                    {
+                        _engine.Config.RegisteredFolders.Clear();
+                    }
+                    if (_engine.Config.FolderOrder != null) _engine.Config.FolderOrder.Clear();
+                    if (_engine.Config.FolderColors != null) _engine.Config.FolderColors.Clear();
+                    if (_engine.Config.LockedFolders != null) _engine.Config.LockedFolders.Clear();
+                    _engine.Config.Save();
+
+                    _engine.FolderPaths.Clear();
+                    _engine.LoadContexts();
+                    RefreshFolders();
+                    UpdateStats();
+
+                    ShowNotificationToast("Folder Tree Reset", "All registered folders have been removed from the tree. Files on disk remain untouched.", "🗑️", 3500);
+                }
+                catch (Exception ex)
+                {
+                    CustomDialog.Show(this, "Reset Error", $"Failed to reset folder tree:\n{ex.Message}");
                 }
             }
         }
@@ -2309,7 +2420,7 @@ namespace SortiFileWpf
                 string newName = prompt.InputText.Trim();
                 if (string.IsNullOrWhiteSpace(newName)) return;
 
-                string parentDir = Path.GetDirectoryName(folder.FullPath) ?? _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
+                string parentDir = Path.GetDirectoryName(folder.FullPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string newPath = Path.Combine(parentDir, newName);
 
                 if (Directory.Exists(newPath))
@@ -2332,6 +2443,17 @@ namespace SortiFileWpf
                         _engine.Config.Save();
                     }
 
+                    if (folder.Parent == null)
+                    {
+                        if (_engine.Config.RegisteredFolders == null) _engine.Config.RegisteredFolders = new List<string>();
+                        if (!_engine.Config.RegisteredFolders.Contains(newPath, StringComparer.OrdinalIgnoreCase))
+                        {
+                            _engine.Config.RegisteredFolders.Add(newPath);
+                            _engine.Config.Save();
+                        }
+                    }
+
+                    _engine.LoadContexts();
                     RefreshFolders();
                     CustomDialog.Show(this, "Folder Duplicated", $"Folder duplicated successfully as '{newName}'.");
                 }
@@ -2358,7 +2480,7 @@ namespace SortiFileWpf
                 if (string.IsNullOrWhiteSpace(newName) || newName.Equals(folder.Name, StringComparison.OrdinalIgnoreCase))
                     return;
 
-                string parentDir = Path.GetDirectoryName(folder.FullPath) ?? _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
+                string parentDir = Path.GetDirectoryName(folder.FullPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string newPath = Path.Combine(parentDir, newName);
 
                 if (Directory.Exists(newPath))
@@ -2380,9 +2502,20 @@ namespace SortiFileWpf
                     if (_engine.Config.FolderColors != null && _engine.Config.FolderColors.Remove(folder.Name, out var color))
                     {
                         _engine.Config.FolderColors[newName] = color;
-                        _engine.Config.Save();
                     }
 
+                    if (folder.Parent == null && _engine.Config.RegisteredFolders != null)
+                    {
+                        string normOld = Path.GetFullPath(folder.FullPath).TrimEnd('\\', '/');
+                        int idx = _engine.Config.RegisteredFolders.FindIndex(r => Path.GetFullPath(r).TrimEnd('\\', '/').Equals(normOld, StringComparison.OrdinalIgnoreCase));
+                        if (idx >= 0)
+                        {
+                            _engine.Config.RegisteredFolders[idx] = newPath;
+                        }
+                    }
+                    _engine.Config.Save();
+
+                    _engine.LoadContexts();
                     RefreshFolders();
                     CustomDialog.Show(this, "Renamed", $"Folder renamed to '{newName}'.");
                 }
@@ -2412,8 +2545,9 @@ namespace SortiFileWpf
 
             try
             {
-                string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
-                string inboxDir = Path.Combine(ws, "Inbox");
+                string inboxDir = _engine.FolderPaths.TryGetValue("Inbox", out string? resolvedInbox)
+                    ? resolvedInbox
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Inbox");
                 if (!Directory.Exists(inboxDir)) Directory.CreateDirectory(inboxDir);
 
                 // Migrate all non-context files
@@ -2421,21 +2555,29 @@ namespace SortiFileWpf
                 {
                     foreach (var file in Directory.GetFiles(folder.FullPath))
                     {
-                        if (Path.GetFileName(file).Equals(".context.md", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (Path.GetFileName(file).Equals(".context.md", StringComparison.OrdinalIgnoreCase) ||
+                            Path.GetFileName(file).Equals("context.md", StringComparison.OrdinalIgnoreCase)) continue;
                         FileMover.MoveFile(file, inboxDir);
                     }
                     Directory.Delete(folder.FullPath, true);
+                }
+
+                if (_engine.Config.RegisteredFolders != null)
+                {
+                    string normDel = Path.GetFullPath(folder.FullPath).TrimEnd('\\', '/');
+                    _engine.Config.RegisteredFolders.RemoveAll(r => Path.GetFullPath(r).TrimEnd('\\', '/').Equals(normDel, StringComparison.OrdinalIgnoreCase));
                 }
 
                 if (_engine.Config.FolderColors != null)
                 {
                     _engine.Config.FolderColors.Remove(folder.Name);
                     _engine.Config.FolderColors.Remove(folder.RelativePath);
-                    _engine.Config.Save();
                 }
+                _engine.Config.Save();
 
                 _collapsedFolderPaths.Remove(folder.FullPath);
 
+                _engine.LoadContexts();
                 RefreshFolders();
                 UpdateStats();
                 CustomDialog.Show(this, "Folder Deleted", $"Target folder '{folder.Name}' was deleted.\nAll contained files were safely moved to Inbox.");
@@ -2578,13 +2720,24 @@ namespace SortiFileWpf
                         ? dlg.CustomLocationPath
                         : ((dlg.CreateAsSubFolder && _selectedFolder != null && Directory.Exists(_selectedFolder.FullPath))
                             ? _selectedFolder.FullPath
-                            : ws);
+                            : Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
 
                     string targetPath = Path.Combine(baseDir, folderName);
 
                     if (Directory.Exists(targetPath))
                     {
                         CustomDialog.Show(this, "Already Exists", $"Folder '{folderName}' already exists at this location.");
+                        return;
+                    }
+
+                    string normTarget = Path.GetFullPath(targetPath).TrimEnd('\\', '/');
+                    bool alreadyRegistered = (_engine.Config.RegisteredFolders != null &&
+                        _engine.Config.RegisteredFolders.Any(r => Path.GetFullPath(r).TrimEnd('\\', '/').Equals(normTarget, StringComparison.OrdinalIgnoreCase))) ||
+                        FolderItems.Any(f => Path.GetFullPath(f.FullPath).TrimEnd('\\', '/').Equals(normTarget, StringComparison.OrdinalIgnoreCase));
+
+                    if (alreadyRegistered)
+                    {
+                        CustomDialog.Show(this, "Folder Already Added", $"A folder with this path is already registered in SortiFile's folder tree:\n{targetPath}");
                         return;
                     }
 
@@ -2598,6 +2751,19 @@ namespace SortiFileWpf
                         }
                         File.WriteAllText(Path.Combine(targetPath, ".context.md"), ctxContent);
 
+                        if (!dlg.CreateAsSubFolder)
+                        {
+                            if (_engine.Config.RegisteredFolders == null)
+                                _engine.Config.RegisteredFolders = new List<string>();
+
+                            if (!_engine.Config.RegisteredFolders.Contains(targetPath, StringComparer.OrdinalIgnoreCase))
+                            {
+                                _engine.Config.RegisteredFolders.Add(targetPath);
+                                _engine.Config.Save();
+                            }
+                        }
+
+                        _engine.LoadContexts();
                         RefreshFolders();
                         UpdateStats();
 
@@ -2617,11 +2783,11 @@ namespace SortiFileWpf
             }
             else
             {
-                AddExistingFolderWorkflow(ws);
+                AddExistingFolderWorkflow();
             }
         }
 
-        private void AddExistingFolderWorkflow(string ws)
+        private void AddExistingFolderWorkflow()
         {
             var dlg = new OpenFolderDialog
             {
@@ -2633,6 +2799,19 @@ namespace SortiFileWpf
             string sourceDir = dlg.FolderName;
             string folderName = Path.GetFileName(sourceDir);
             if (string.IsNullOrWhiteSpace(folderName)) folderName = sourceDir;
+
+            // Validation checker: Check if folder is already registered in the database / folder tree
+            string normSource = Path.GetFullPath(sourceDir).TrimEnd('\\', '/');
+            bool alreadyInConfig = _engine.Config.RegisteredFolders != null &&
+                _engine.Config.RegisteredFolders.Any(r => Path.GetFullPath(r).TrimEnd('\\', '/').Equals(normSource, StringComparison.OrdinalIgnoreCase));
+            bool alreadyInTree = FolderItems.Any(f => Path.GetFullPath(f.FullPath).TrimEnd('\\', '/').Equals(normSource, StringComparison.OrdinalIgnoreCase));
+
+            if (alreadyInConfig || alreadyInTree)
+            {
+                CustomDialog.Show(this, "Folder Already Added",
+                    $"The folder '{folderName}' is already registered in SortiFile's folder tree.\n\nPath:\n{sourceDir}");
+                return;
+            }
 
             string ctxPath1 = Path.Combine(sourceDir, ".context.md");
             string ctxPath2 = Path.Combine(sourceDir, "context.md");
@@ -2702,31 +2881,26 @@ namespace SortiFileWpf
             }
             catch { }
 
-            // Put/integrate into SortiFile
-            string parentTarget = (_selectedFolder != null && Directory.Exists(_selectedFolder.FullPath))
-                ? _selectedFolder.FullPath
-                : ws;
-
-            string destPath = Path.Combine(parentTarget, folderName);
-            if (!sourceDir.Equals(destPath, StringComparison.OrdinalIgnoreCase))
+            // Directly register existing folder into RegisteredFolders (no copying files)
+            if (_engine.Config.RegisteredFolders == null)
             {
-                try
-                {
-                    if (!Directory.Exists(destPath))
-                    {
-                        CopyDirectoryRecursive(sourceDir, destPath);
-                    }
-                }
-                catch { }
+                _engine.Config.RegisteredFolders = new List<string>();
             }
 
+            if (!_engine.Config.RegisteredFolders.Contains(sourceDir, StringComparer.OrdinalIgnoreCase))
+            {
+                _engine.Config.RegisteredFolders.Add(sourceDir);
+                _engine.Config.Save();
+            }
+
+            _engine.LoadContexts();
             RefreshFolders();
             UpdateStats();
 
-            var added = FolderItems.FirstOrDefault(f => f.FullPath.Equals(destPath, StringComparison.OrdinalIgnoreCase) || f.FullPath.Equals(sourceDir, StringComparison.OrdinalIgnoreCase));
+            var added = FolderItems.FirstOrDefault(f => f.FullPath.Equals(sourceDir, StringComparison.OrdinalIgnoreCase));
             if (added != null) SelectFolder(added);
 
-            CustomDialog.Show(this, "Folder Added", $"Folder '{folderName}' and its taxonomy context are now active in SortiFile.");
+            CustomDialog.Show(this, "Folder Added", $"Folder '{folderName}' and its taxonomy context are now registered in SortiFile.");
         }
 
         // ==================== CHANGELOG & GITHUB ====================
@@ -3121,6 +3295,151 @@ namespace SortiFileWpf
                 _textBox.Focus();
                 _textBox.SelectAll();
             };
+        }
+    }
+
+    // ==================== RESET FOLDER TREE CONFIRMATION DIALOG ====================
+
+    public class ResetFolderTreeDialog : Window
+    {
+        private readonly TextBox _txtInput;
+        private readonly Button _btnConfirm;
+
+        public bool IsConfirmed { get; private set; }
+
+        public ResetFolderTreeDialog()
+        {
+            Title = "Reset Folder Tree";
+            WindowStyle = WindowStyle.None;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ShowInTaskbar = false;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            FontFamily = (FontFamily)Application.Current.FindResource("IosFontFamily");
+            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
+            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
+
+            var outerGrid = new Grid { Margin = new Thickness(24) };
+
+            var card = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(24),
+                Width = 460
+            };
+            card.Effect = new DropShadowEffect
+            {
+                BlurRadius = 32,
+                ShadowDepth = 6,
+                Direction = 270,
+                Color = Color.FromRgb(0x0F, 0x17, 0x2A),
+                Opacity = 0.20
+            };
+
+            var stack = new StackPanel();
+
+            var titleBlock = new TextBlock
+            {
+                Text = "Reset Folder Tree",
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            stack.Children.Add(titleBlock);
+
+            var msgBlock = new TextBlock
+            {
+                Text = "This action will remove all registered folders and subfolders from SortiFile's active folder tree and routing taxonomy.\n\n" +
+                       "• Your actual folders and files on disk will NOT be deleted.\n" +
+                       "• To confirm, please type \"confirm\" in the box below:",
+                FontSize = 12.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x47, 0x55, 0x69)),
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 18,
+                Margin = new Thickness(0, 0, 0, 14)
+            };
+            stack.Children.Add(msgBlock);
+
+            _txtInput = new TextBox
+            {
+                Height = 36,
+                FontSize = 13,
+                Padding = new Thickness(10, 6, 10, 6),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1)),
+                Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC)),
+                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
+                Margin = new Thickness(0, 0, 0, 20)
+            };
+            stack.Children.Add(_txtInput);
+
+            var btnPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+
+            var btnCancel = new Button
+            {
+                Content = "Cancel",
+                Width = 84,
+                Height = 34,
+                Margin = new Thickness(0, 0, 8, 0),
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                Cursor = Cursors.Hand
+            };
+            btnCancel.Click += (s, e) => { DialogResult = false; Close(); };
+            btnPanel.Children.Add(btnCancel);
+
+            _btnConfirm = new Button
+            {
+                Content = "Reset Tree",
+                MinWidth = 100,
+                Height = 34,
+                Padding = new Thickness(14, 0, 14, 0),
+                Style = (Style)Application.Current.FindResource("PrimaryBtn"),
+                Background = new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26)), // Red destructive
+                IsEnabled = false,
+                Cursor = Cursors.Hand
+            };
+            _btnConfirm.Click += (s, e) =>
+            {
+                if (_txtInput.Text.Trim().Equals("confirm", StringComparison.OrdinalIgnoreCase))
+                {
+                    IsConfirmed = true;
+                    DialogResult = true;
+                    Close();
+                }
+            };
+            btnPanel.Children.Add(_btnConfirm);
+
+            stack.Children.Add(btnPanel);
+            card.Child = stack;
+            outerGrid.Children.Add(card);
+
+            _txtInput.TextChanged += (s, e) =>
+            {
+                _btnConfirm.IsEnabled = _txtInput.Text.Trim().Equals("confirm", StringComparison.OrdinalIgnoreCase);
+            };
+
+            _txtInput.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter && _btnConfirm.IsEnabled)
+                {
+                    _btnConfirm.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+            };
+
+            Content = outerGrid;
+            KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Escape) { DialogResult = false; Close(); }
+            };
+            Loaded += (s, e) => _txtInput.Focus();
         }
     }
 

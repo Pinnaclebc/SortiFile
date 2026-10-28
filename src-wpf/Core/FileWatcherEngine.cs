@@ -12,7 +12,6 @@ namespace SortiFileWpf.Core
     public class FileWatcherEngine
     {
         private FileSystemWatcher? _watcher;
-        private FileSystemWatcher? _workspaceWatcher;
         private readonly ConcurrentQueue<string> _queue = new();
         private readonly AutoResetEvent _wakeSignal = new(false);
         private Thread? _workerThread;
@@ -21,6 +20,7 @@ namespace SortiFileWpf.Core
         public AppConfig Config { get; }
         public HistoryManager History { get; }
         public OllamaRouter Router { get; }
+        public Dictionary<string, string> FolderPaths { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public event Action<QueueItem>? ItemQueued;
         public event Action<QueueItem>? ItemStatusChanged;
@@ -59,8 +59,6 @@ namespace SortiFileWpf.Core
             _wakeSignal.Set();
             _watcher?.Dispose();
             _watcher = null;
-            _workspaceWatcher?.Dispose();
-            _workspaceWatcher = null;
         }
 
         public void RestartWatcher()
@@ -80,51 +78,46 @@ namespace SortiFileWpf.Core
 
             _watcher.Created += (s, e) => Enqueue(e.FullPath);
             _watcher.Renamed += (s, e) => Enqueue(e.FullPath);
-
-            _workspaceWatcher?.Dispose();
-            string wsPath = Config.ResolvePath(Config.WorkspaceDir);
-            if (!Directory.Exists(wsPath))
-                Directory.CreateDirectory(wsPath);
-
-            _workspaceWatcher = new FileSystemWatcher(wsPath)
-            {
-                NotifyFilter = NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastWrite,
-                IncludeSubdirectories = true,
-                EnableRaisingEvents = true
-            };
-
-            _workspaceWatcher.Created += (s, e) => WorkspaceChanged?.Invoke();
-            _workspaceWatcher.Deleted += (s, e) => WorkspaceChanged?.Invoke();
-            _workspaceWatcher.Renamed += (s, e) => WorkspaceChanged?.Invoke();
         }
 
         public void EnsureWorkspaceStructure()
         {
-            string ws = Config.ResolvePath(Config.WorkspaceDir);
-            if (!Directory.Exists(ws)) Directory.CreateDirectory(ws);
+            if (Config.RegisteredFolders == null)
+                Config.RegisteredFolders = new List<string>();
 
-            var defaultFolders = new Dictionary<string, string>
+            // On first run or if registered folders are not yet defined, initialize default Desktop folders
+            if (!Config.IsFirstRunCompleted && Config.RegisteredFolders.Count == 0)
             {
-                { "Documents", "General written documents, reports, text files, articles, PDF papers, meeting notes, essays, spreadsheets, and educational or business documentation." },
-                { "Images", "Photographs, graphic designs, screenshots, illustrations, wallpapers, and visual media assets in PNG, JPG, WEBP, or SVG formats." },
-                { "Inbox", "Default staging area for unclassified files, low confidence routing (< 75%), or unknown binary formats requiring manual review." },
-                { "Code_Projects", "Excluded from automated sorting. Contains programming source code, repositories, scripts, and software build artifacts." }
-            };
-
-            foreach (var kvp in defaultFolders)
-            {
-                string folder = Path.Combine(ws, kvp.Key);
-                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                string ctxFile = Path.Combine(folder, ".context.md");
-                if (!File.Exists(ctxFile))
+                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                var defaultFolders = new Dictionary<string, string>
                 {
-                    try
+                    { "Documents", "General written documents, reports, text files, articles, PDF papers, meeting notes, essays, spreadsheets, and educational or business documentation." },
+                    { "Images", "Photographs, graphic designs, screenshots, illustrations, wallpapers, and visual media assets in PNG, JPG, WEBP, or SVG formats." },
+                    { "Inbox", "Default staging area for unclassified files, low confidence routing (< 75%), or unknown binary formats requiring manual review." },
+                    { "Code_Projects", "Excluded from automated sorting. Contains programming source code, repositories, scripts, and software build artifacts." }
+                };
+
+                foreach (var kvp in defaultFolders)
+                {
+                    string folder = Path.Combine(desktop, kvp.Key);
+                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                    string ctxFile = Path.Combine(folder, ".context.md");
+                    if (!File.Exists(ctxFile))
                     {
-                        File.WriteAllText(ctxFile, $"# {kvp.Key} Context\n\n{kvp.Value}\n");
+                        try
+                        {
+                            File.WriteAllText(ctxFile, $"# {kvp.Key} Context\n\n{kvp.Value}\n");
+                        }
+                        catch { }
                     }
-                    catch { }
+
+                    if (!Config.RegisteredFolders.Contains(folder, StringComparer.OrdinalIgnoreCase))
+                    {
+                        Config.RegisteredFolders.Add(folder);
+                    }
                 }
+                Config.Save();
             }
         }
 
@@ -228,7 +221,43 @@ namespace SortiFileWpf.Core
             item.Status = $"To {routing.TargetFolder}";
             ItemStatusChanged?.Invoke(item);
 
-            string targetDir = Path.Combine(Config.ResolvePath(Config.WorkspaceDir), routing.TargetFolder);
+            string targetDir;
+            if (FolderPaths.TryGetValue(routing.TargetFolder, out string? resolved) && Directory.Exists(resolved))
+            {
+                targetDir = resolved;
+            }
+            else if (FolderPaths.TryGetValue(Path.GetFileName(routing.TargetFolder), out string? resolvedByName) && Directory.Exists(resolvedByName))
+            {
+                targetDir = resolvedByName;
+            }
+            else if (FolderPaths.TryGetValue("Inbox", out string? inboxPath) && Directory.Exists(inboxPath))
+            {
+                targetDir = inboxPath;
+            }
+            else
+            {
+                var matched = Config.RegisteredFolders?.FirstOrDefault(f => Path.GetFileName(f.TrimEnd('\\', '/')).Equals(routing.TargetFolder, StringComparison.OrdinalIgnoreCase));
+                if (matched != null && Directory.Exists(matched))
+                {
+                    targetDir = matched;
+                }
+                else
+                {
+                    string ws = Config.ResolvePath(Config.WorkspaceDir);
+                    string wsTarget = Path.Combine(ws, routing.TargetFolder);
+                    if (Directory.Exists(wsTarget))
+                    {
+                        targetDir = wsTarget;
+                    }
+                    else
+                    {
+                        string desktopInbox = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Inbox");
+                        if (!Directory.Exists(desktopInbox)) Directory.CreateDirectory(desktopInbox);
+                        targetDir = desktopInbox;
+                    }
+                }
+            }
+
             var (moved, destPath, err) = FileMover.MoveFile(filePath, targetDir);
 
             if (moved)
@@ -264,11 +293,51 @@ namespace SortiFileWpf.Core
 
         public Dictionary<string, string> LoadContexts()
         {
-            string ws = Config.ResolvePath(Config.WorkspaceDir);
             var rawDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (!Directory.Exists(ws)) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            FolderPaths.Clear();
 
-            ScanContextsRecursive(ws, ws, rawDict);
+            var registered = Config.RegisteredFolders ?? new List<string>();
+
+            if (registered.Count > 0)
+            {
+                foreach (var folderPath in registered)
+                {
+                    if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) continue;
+
+                    string rootName = Path.GetFileName(folderPath.TrimEnd('\\', '/'));
+                    if (string.IsNullOrEmpty(rootName)) rootName = folderPath;
+
+                    bool isLocked = Config.LockedFolders != null && (Config.LockedFolders.Contains(rootName, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(folderPath, StringComparer.OrdinalIgnoreCase));
+                    if (!isLocked)
+                    {
+                        string ctxFile = Path.Combine(folderPath, ".context.md");
+                        string ctxFileAlt = Path.Combine(folderPath, "context.md");
+                        string desc = $"Files related to {rootName}.";
+                        if (File.Exists(ctxFile))
+                        {
+                            try { desc = File.ReadAllText(ctxFile).Trim(); } catch { }
+                        }
+                        else if (File.Exists(ctxFileAlt))
+                        {
+                            try { desc = File.ReadAllText(ctxFileAlt).Trim(); } catch { }
+                        }
+
+                        rawDict[rootName] = desc;
+                        FolderPaths[rootName] = folderPath;
+                    }
+
+                    ScanRegisteredSubContexts(rootName, folderPath, folderPath, rawDict);
+                }
+            }
+            else
+            {
+                // Fallback for workspaces if registered folders list is empty
+                string ws = Config.ResolvePath(Config.WorkspaceDir);
+                if (Directory.Exists(ws))
+                {
+                    ScanContextsRecursive(ws, ws, rawDict);
+                }
+            }
 
             // Compute dynamic context inheritance for subfolders (ordered by depth so parents resolve first)
             var effectiveDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -299,6 +368,42 @@ namespace SortiFileWpf.Core
             return effectiveDict;
         }
 
+        private void ScanRegisteredSubContexts(string rootName, string baseDir, string currentDir, Dictionary<string, string> dict)
+        {
+            foreach (var dir in Directory.GetDirectories(currentDir))
+            {
+                string name = Path.GetFileName(dir);
+                if (name.StartsWith(".") || name.Equals("Code_Projects", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string subRel = Path.GetRelativePath(baseDir, dir).Replace('\\', '/');
+                string key = $"{rootName}/{subRel}";
+
+                if (Config.LockedFolders != null && (Config.LockedFolders.Contains(key, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(name, StringComparer.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                string ctxFile = Path.Combine(dir, ".context.md");
+                string ctxFileAlt = Path.Combine(dir, "context.md");
+                string desc = $"Files related to {name}.";
+                if (File.Exists(ctxFile))
+                {
+                    try { desc = File.ReadAllText(ctxFile).Trim(); } catch { }
+                }
+                else if (File.Exists(ctxFileAlt))
+                {
+                    try { desc = File.ReadAllText(ctxFileAlt).Trim(); } catch { }
+                }
+
+                dict[key] = desc;
+                FolderPaths[key] = dir;
+                FolderPaths[name] = dir;
+
+                ScanRegisteredSubContexts(rootName, baseDir, dir, dict);
+            }
+        }
+
         private void ScanContextsRecursive(string rootDir, string currentDir, Dictionary<string, string> dict)
         {
             foreach (var dir in Directory.GetDirectories(currentDir))
@@ -322,6 +427,8 @@ namespace SortiFileWpf.Core
                     try { desc = File.ReadAllText(ctxFile).Trim(); } catch { }
                 }
                 dict[relPath] = desc;
+                FolderPaths[relPath] = dir;
+                FolderPaths[name] = dir;
 
                 ScanContextsRecursive(rootDir, dir, dict);
             }

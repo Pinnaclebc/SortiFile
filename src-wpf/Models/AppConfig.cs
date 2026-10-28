@@ -8,10 +8,13 @@ namespace SortiFileWpf.Models
     public class AppConfig
     {
         [JsonPropertyName("watch_dir")]
-        public string WatchDir { get; set; } = "Watch_Folder";
+        public string WatchDir { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Watch_Folder");
 
         [JsonPropertyName("workspace_dir")]
         public string WorkspaceDir { get; set; } = "SortiFile_Workspace";
+
+        [JsonPropertyName("registered_folders")]
+        public System.Collections.Generic.List<string> RegisteredFolders { get; set; } = new();
 
         [JsonPropertyName("confidence_threshold")]
         public int ConfidenceThreshold { get; set; } = 75;
