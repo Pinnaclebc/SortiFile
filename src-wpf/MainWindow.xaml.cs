@@ -323,6 +323,8 @@ namespace SortiFileWpf
 
         private void ToggleFolderExpand_Click(object sender, RoutedEventArgs e)
         {
+            _draggedFolder = null;
+            e.Handled = true;
             if (sender is not Button btn || btn.Tag is not FolderInfo folder) return;
 
             folder.IsExpanded = !folder.IsExpanded;
@@ -974,6 +976,9 @@ namespace SortiFileWpf
 
         private void FolderItem_Click(object sender, MouseButtonEventArgs e)
         {
+            if (e.ChangedButton != MouseButton.Left) return;
+            if (e.OriginalSource is DependencyObject dep && FindVisualParent<Button>(dep) != null) return;
+
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
             {
                 if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
@@ -1018,6 +1023,7 @@ namespace SortiFileWpf
 
         private void FolderItem_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
+            _draggedFolder = null;
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
             {
                 var selectedList = FolderItems.Where(f => f.IsSelected && !f.IsHiddenByParent).ToList();
@@ -1195,6 +1201,8 @@ namespace SortiFileWpf
 
         private void FolderOptions_Click(object sender, RoutedEventArgs e)
         {
+            _draggedFolder = null;
+            e.Handled = true;
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
             {
                 OpenFolderOptionsPopup(folder, elem, isRightClick: false);
@@ -1382,7 +1390,17 @@ namespace SortiFileWpf
         private void TreeItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.OriginalSource is DependencyObject dep && FindVisualParent<Button>(dep) != null)
+            {
+                _draggedFolder = null;
                 return;
+            }
+
+            if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift) ||
+                Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl))
+            {
+                _draggedFolder = null;
+                return;
+            }
 
             _dragStartPoint = e.GetPosition(null);
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
@@ -1391,9 +1409,20 @@ namespace SortiFileWpf
             }
         }
 
+        private void TreeItem_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            _draggedFolder = null;
+        }
+
         private void TreeItem_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed && _draggedFolder != null)
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                _draggedFolder = null;
+                return;
+            }
+
+            if (_draggedFolder != null)
             {
                 Point currentPoint = e.GetPosition(null);
                 Vector diff = _dragStartPoint - currentPoint;
@@ -3262,7 +3291,6 @@ namespace SortiFileWpf
     {
         private readonly TextBox _textBox;
         private readonly TextBox _txtContext;
-        private readonly RadioButton? _rbRoot;
         private readonly RadioButton? _rbSub;
         private readonly RadioButton _rbCustom;
         private readonly TextBlock _pathPreview;
@@ -3273,7 +3301,7 @@ namespace SortiFileWpf
         public string FolderName => _textBox.Text.Trim();
         public string ContextPrompt => _txtContext.Text.Trim();
         public bool CreateAsSubFolder => _rbSub != null && _rbSub.IsChecked == true;
-        public string CustomLocationPath => _rbCustom.IsChecked == true ? _customLocationPath : "";
+        public string CustomLocationPath => (!CreateAsSubFolder && !string.IsNullOrWhiteSpace(_customLocationPath)) ? _customLocationPath : "";
 
         public CreateFolderDialog(string wsRoot, FolderInfo? selectedFolder)
         {
@@ -3325,25 +3353,12 @@ namespace SortiFileWpf
 
             var radioPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
 
-            _rbRoot = new RadioButton
-            {
-                Content = "📁 Root Workspace",
-                IsChecked = true,
-                FontSize = 11.5,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
-                Margin = new Thickness(0, 0, 14, 4),
-                Cursor = Cursors.Hand
-            };
-            _rbRoot.Checked += (s, e) => UpdatePreview();
-            radioPanel.Children.Add(_rbRoot);
-
             if (_selectedFolder != null)
             {
                 _rbSub = new RadioButton
                 {
                     Content = $"↳ Sub-folder in '{_selectedFolder.Name}'",
-                    IsChecked = false,
+                    IsChecked = true,
                     FontSize = 11.5,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
@@ -3354,34 +3369,47 @@ namespace SortiFileWpf
                 radioPanel.Children.Add(_rbSub);
             }
 
+            var customContainer = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 14, 4) };
+
             _rbCustom = new RadioButton
             {
-                Content = "📍 Custom Location...",
-                IsChecked = false,
+                Content = _selectedFolder != null ? "📍 Custom Location..." : "📍 Target Location...",
+                IsChecked = (_selectedFolder == null),
                 FontSize = 11.5,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
-                Margin = new Thickness(0, 0, 14, 4),
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center,
                 Cursor = Cursors.Hand
             };
             _rbCustom.Checked += (s, e) =>
             {
-                var pickDlg = new OpenFolderDialog
+                if (string.IsNullOrWhiteSpace(_customLocationPath))
                 {
-                    Title = "Select Custom Target Folder Location",
-                    InitialDirectory = _wsRoot
-                };
-                if (pickDlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(pickDlg.FolderName))
-                {
-                    _customLocationPath = pickDlg.FolderName;
-                }
-                else if (string.IsNullOrWhiteSpace(_customLocationPath))
-                {
-                    _rbRoot.IsChecked = true;
+                    ChooseCustomPath();
                 }
                 UpdatePreview();
             };
-            radioPanel.Children.Add(_rbCustom);
+            customContainer.Children.Add(_rbCustom);
+
+            var btnBrowseCustom = new Button
+            {
+                Content = "Browse...",
+                FontSize = 10,
+                Padding = new Thickness(8, 2, 8, 2),
+                Height = 22,
+                Cursor = Cursors.Hand,
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            btnBrowseCustom.Click += (s, e) =>
+            {
+                _rbCustom.IsChecked = true;
+                ChooseCustomPath();
+            };
+            customContainer.Children.Add(btnBrowseCustom);
+
+            radioPanel.Children.Add(customContainer);
             sp.Children.Add(radioPanel);
 
             _pathPreview = new TextBlock
@@ -3472,6 +3500,12 @@ namespace SortiFileWpf
                     _textBox.Focus();
                     return;
                 }
+                if (!CreateAsSubFolder && string.IsNullOrWhiteSpace(_customLocationPath))
+                {
+                    CustomDialog.Show(this, "Destination Required", "Please choose a destination location for this folder.");
+                    ChooseCustomPath();
+                    if (string.IsNullOrWhiteSpace(_customLocationPath)) return;
+                }
                 if (string.IsNullOrWhiteSpace(ContextPrompt))
                 {
                     CustomDialog.Show(this, "Context Required", "Please provide a classification context for this folder (.context.md is mandatory).");
@@ -3488,23 +3522,57 @@ namespace SortiFileWpf
             Loaded += (s, e) => _textBox.Focus();
         }
 
+        private void ChooseCustomPath()
+        {
+            var pickDlg = new OpenFolderDialog
+            {
+                Title = "Select Target Folder Location",
+                InitialDirectory = !string.IsNullOrWhiteSpace(_customLocationPath) ? _customLocationPath : _wsRoot
+            };
+            if (pickDlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(pickDlg.FolderName))
+            {
+                _customLocationPath = pickDlg.FolderName;
+                _rbCustom.IsChecked = true;
+                UpdatePreview();
+            }
+            else if (string.IsNullOrWhiteSpace(_customLocationPath))
+            {
+                if (_rbSub != null)
+                {
+                    _rbSub.IsChecked = true;
+                }
+            }
+        }
+
         private void UpdatePreview()
         {
             string name = string.IsNullOrWhiteSpace(_textBox.Text) ? "NewFolder" : _textBox.Text.Trim();
-            string parent = _wsRoot;
-            if (_rbCustom.IsChecked == true && !string.IsNullOrWhiteSpace(_customLocationPath))
+            string parent;
+
+            if (CreateAsSubFolder && _selectedFolder != null)
+            {
+                parent = _selectedFolder.FullPath;
+            }
+            else if (!string.IsNullOrWhiteSpace(_customLocationPath))
             {
                 parent = _customLocationPath;
             }
-            else if (CreateAsSubFolder && _selectedFolder != null)
+            else
             {
-                parent = _selectedFolder.FullPath;
+                parent = _wsRoot;
             }
 
             try
             {
                 string rel = Path.GetRelativePath(_wsRoot, Path.Combine(parent, name));
-                _pathPreview.Text = $"📍 Will create in: {Path.Combine(Path.GetFileName(_wsRoot), rel)}";
+                if (!rel.StartsWith("..") && !Path.IsPathRooted(rel))
+                {
+                    _pathPreview.Text = $"📍 Will create in: {Path.Combine(Path.GetFileName(_wsRoot), rel)}";
+                }
+                else
+                {
+                    _pathPreview.Text = $"📍 Will create in: {Path.Combine(parent, name)}";
+                }
             }
             catch
             {

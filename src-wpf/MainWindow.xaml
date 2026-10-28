@@ -247,7 +247,7 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v1.2.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.2.1" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -270,37 +270,37 @@
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ Recent Changes in v1.2.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Recent Changes in v1.2.1" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Recent Change 1: Setup Wizard Overhaul -->
+                                    <!-- Recent Change 1: Multi-Select Right-Click Fix -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🧙‍♂️ Streamlined Setup Wizard &amp; Custom Folders" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
-                                            <TextBlock Text="Streamlined 4-step wizard retaining incoming work folder configuration, adding clear-all starter options, custom target paths, and existing directory context detection." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🌲 Tree Multi-Select Right-Click Context Menu" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Fixed right-click unselecting highlighted folders. Right-clicking any multi-selected folder preserves the range selection and reliably opens bulk options." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 2: Add+ Dual Action & Subfolder Context Scans -->
+                                    <!-- Recent Change 2: Triple-Dot Drag Lock -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="➕ Dynamic Add+ &amp; Subfolder Context Scanning" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="Create new taxonomy folders with mandatory .context.md or add existing folders with automated subfolder scanning and batch placeholder creation." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🔒 Triple-Dot Order &amp; Reorder Drag Lock" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="Clicking folder options or Shift-clicking now resets drag state and locks against accidental drag-drop reordering, keeping folder hierarchy order intact." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 3: Shift+Click Multi-Select & Custom Popup -->
+                                    <!-- Recent Change 3: Destination Locations Cleanup -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🌲 Tree Multi-Select &amp; Liquid Glass Context Menu" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Shift+Left Click to highlight ranges of folders in the hierarchy, with a dedicated custom liquid glass right-click menu to bulk delete, lock, or recolor." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="📍 Streamlined Folder Destination Locations" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
+                                            <TextBlock Text="Removed the legacy Root Workspace destination option in Add+ dialog, focusing destination choices on dedicated sub-folders or custom target paths." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 4: History Management & Zero Windows Sound -->
+                                    <!-- Recent Change 4: Exclude config.json from Git Tracking -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="🗑️ Sorting History Reset &amp; Zero Windows Sound" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Reset sorting audit logs with undoable action warnings, streamlined settings, and pure silent custom modal dialogs throughout the app." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="⚙️ Auto-Generated Configuration Untracking" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
+                                            <TextBlock Text="Excluded local auto-generated config.json from git index and remote repository tracking, maintaining clean environment independence." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
@@ -378,6 +378,7 @@
                                                         MouseDown="FolderItem_Click"
                                                         MouseRightButtonUp="FolderItem_MouseRightButtonUp"
                                                         PreviewMouseLeftButtonDown="TreeItem_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseLeftButtonUp="TreeItem_PreviewMouseLeftButtonUp"
                                                         PreviewMouseMove="TreeItem_PreviewMouseMove"
                                                         AllowDrop="True"
                                                         DragOver="TreeItem_DragOver"
