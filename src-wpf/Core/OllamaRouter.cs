@@ -25,6 +25,7 @@ namespace SortiFileWpf.Core
     public class OllamaRouter
     {
         private readonly HttpClient _http;
+        private string? _resolvedModel = null;
         public string Host { get; set; }
         public string Model { get; set; }
         public int Threshold { get; set; }
@@ -34,16 +35,45 @@ namespace SortiFileWpf.Core
             Host = host.TrimEnd('/');
             Model = model;
             Threshold = threshold;
-            _http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            _http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         }
 
         public async Task<bool> IsOllamaOnlineAsync()
         {
             try
             {
-                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(800));
+                using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMilliseconds(1500));
                 var res = await _http.GetAsync($"{Host}/api/tags", cts.Token);
-                return res.IsSuccessStatusCode;
+                if (!res.IsSuccessStatusCode) return false;
+
+                string json = await res.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("models", out var modelsElem) && modelsElem.ValueKind == JsonValueKind.Array)
+                {
+                    var available = new List<string>();
+                    foreach (var m in modelsElem.EnumerateArray())
+                    {
+                        if (m.TryGetProperty("name", out var n) && n.GetString() is string name)
+                        {
+                            available.Add(name);
+                        }
+                    }
+
+                    if (available.Count > 0)
+                    {
+                        if (available.Any(a => a.Equals(Model, StringComparison.OrdinalIgnoreCase) || a.StartsWith(Model + ":", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            _resolvedModel = Model;
+                        }
+                        else
+                        {
+                            var chatModels = available.Where(a => !a.Contains("embed", StringComparison.OrdinalIgnoreCase) && !a.Contains("bge", StringComparison.OrdinalIgnoreCase)).ToList();
+                            _resolvedModel = chatModels.Count > 0 ? chatModels[0] : available[0];
+                        }
+                    }
+                }
+
+                return true;
             }
             catch
             {
@@ -103,12 +133,14 @@ namespace SortiFileWpf.Core
             sb.AppendLine("Determine the single best target folder and your confidence score (0-100).");
             sb.AppendLine("Output strictly valid JSON with keys: 'target_folder', 'confidence_score', and 'reasoning'.");
 
+            string activeModel = _resolvedModel ?? Model;
+
             var payload = new
             {
-                model = Model,
+                model = activeModel,
                 messages = new[]
                 {
-                    new { role = "system", content = "You are a local file sorting agent. Output strictly valid JSON with keys 'target_folder', 'confidence_score', and 'reasoning'. If unsure, output 'Inbox'." },
+                    new { role = "system", content = "You are an expert file organizer. Given a file's name, extension, and content snippet, match it to the most relevant target folder based on the folder names and descriptions. If a file relates to a parent category or subcategory (such as invoices, bills, receipts, taxes, videos, or documents), select that folder with high confidence (80-95). Do NOT select 'Inbox' unless the file is truly unclassifiable, empty, or corrupted binary data. Return strictly valid JSON with keys 'target_folder', 'confidence_score' (integer 0-100), and 'reasoning'." },
                     new { role = "user", content = sb.ToString() }
                 },
                 format = "json",
@@ -133,7 +165,20 @@ namespace SortiFileWpf.Core
                 using var parsed = JsonDocument.Parse(cleanJson);
                 var root = parsed.RootElement;
                 string folder = root.TryGetProperty("target_folder", out var f) ? f.GetString() ?? "Inbox" : "Inbox";
-                int conf = root.TryGetProperty("confidence_score", out var c) ? c.GetInt32() : 50;
+
+                int conf = 50;
+                if (root.TryGetProperty("confidence_score", out var c))
+                {
+                    if (c.ValueKind == JsonValueKind.Number)
+                    {
+                        conf = (int)Math.Round(c.GetDouble());
+                    }
+                    else if (c.ValueKind == JsonValueKind.String && int.TryParse(c.GetString(), out int parsedConf))
+                    {
+                        conf = parsedConf;
+                    }
+                }
+
                 string reason = root.TryGetProperty("reasoning", out var r) ? r.GetString() ?? "AI decision" : "AI decision";
 
                 // Normalize folder name
@@ -143,7 +188,7 @@ namespace SortiFileWpf.Core
                     TargetFolder = matched,
                     ConfidenceScore = conf,
                     Reasoning = reason,
-                    Engine = $"Ollama ({Model})"
+                    Engine = $"Ollama ({activeModel})"
                 };
             }
 
@@ -174,7 +219,8 @@ namespace SortiFileWpf.Core
         {
             "and", "the", "for", "with", "this", "that", "from", "into", "over", "more",
             "some", "such", "than", "then", "them", "these", "those", "context", "files",
-            "documents", "relevant", "related", "assets", "common", "types", "includes", "general"
+            "documents", "relevant", "related", "assets", "common", "types", "includes", "general",
+            "specific", "subcategory", "category"
         };
 
         private static string NormalizeStem(string w)
@@ -219,6 +265,7 @@ namespace SortiFileWpf.Core
             public int UniqueMatches { get; set; } = 0;
             public int InheritedMatches { get; set; } = 0;
             public bool NameMatch { get; set; } = false;
+            public bool FileNameTokenMatch { get; set; } = false;
             public string Reasoning { get; set; } = "";
         }
 
@@ -341,7 +388,7 @@ namespace SortiFileWpf.Core
                         reason = $"Matched visual image extension ({ext}) to Images folder.";
                     }
                 }
-                else if (isDoc || contentWords.Count > 0)
+                else if (isDoc)
                 {
                     bool isMediaOnly = selfName.Contains("Video", StringComparison.OrdinalIgnoreCase) ||
                                        selfName.Contains("Audio", StringComparison.OrdinalIgnoreCase) ||
@@ -386,6 +433,7 @@ namespace SortiFileWpf.Core
                     UniqueMatches = uniqueMatches,
                     InheritedMatches = inheritedMatches,
                     NameMatch = selfNameMatch,
+                    FileNameTokenMatch = fileNameTokenMatch,
                     Reasoning = reason
                 };
             }
@@ -420,8 +468,12 @@ namespace SortiFileWpf.Core
                 foreach (var sub in subfolders)
                 {
                     var subCandidate = candidateScores[sub];
-                    // If subfolder matches unique tokens and its score is competitive or higher
-                    if ((subCandidate.UniqueMatches > 0 || subCandidate.NameMatch) && subCandidate.Score >= (bestScore - 3.0))
+                    // Subfolder wins if its score is higher than the parent, or has specific name/filename matches with strong affinity
+                    bool isSubfolderStronger = subCandidate.Score > bestScore ||
+                                               (subCandidate.NameMatch && subCandidate.FileNameTokenMatch) ||
+                                               (subCandidate.UniqueMatches >= 2 && subCandidate.Score >= (bestScore - 1.0));
+
+                    if (isSubfolderStronger)
                     {
                         double effectiveSubScore = Math.Max(subCandidate.Score, bestScore + 0.5);
                         if (effectiveSubScore > winningSubScore || winningSubfolder == null)

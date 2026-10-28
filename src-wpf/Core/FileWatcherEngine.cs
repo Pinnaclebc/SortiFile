@@ -210,7 +210,12 @@ namespace SortiFileWpf.Core
             var routing = Router.RouteFileAsync(filePath, snippet, folderContexts, category).GetAwaiter().GetResult();
 
             // Check if chosen target was locked (fallback to Inbox)
-            if (Config.LockedFolders != null && (Config.LockedFolders.Contains(routing.TargetFolder, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(Path.GetFileName(routing.TargetFolder), StringComparer.OrdinalIgnoreCase)))
+            bool isLocked = Config.LockedFolders != null && (
+                Config.LockedFolders.Contains(routing.TargetFolder, StringComparer.OrdinalIgnoreCase) ||
+                Config.LockedFolders.Contains(Path.GetFileName(routing.TargetFolder), StringComparer.OrdinalIgnoreCase) ||
+                Config.LockedFolders.Any(lf => routing.TargetFolder.StartsWith(lf + "/", StringComparison.OrdinalIgnoreCase)));
+
+            if (isLocked)
             {
                 routing.TargetFolder = "Inbox";
                 routing.Reasoning = "Selected target folder is locked from auto-organizing. Safely routed to Inbox.";
@@ -307,24 +312,20 @@ namespace SortiFileWpf.Core
                     string rootName = Path.GetFileName(folderPath.TrimEnd('\\', '/'));
                     if (string.IsNullOrEmpty(rootName)) rootName = folderPath;
 
-                    bool isLocked = Config.LockedFolders != null && (Config.LockedFolders.Contains(rootName, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(folderPath, StringComparer.OrdinalIgnoreCase));
-                    if (!isLocked)
+                    string ctxFile = Path.Combine(folderPath, ".context.md");
+                    string ctxFileAlt = Path.Combine(folderPath, "context.md");
+                    string desc = $"Files related to {rootName}.";
+                    if (File.Exists(ctxFile))
                     {
-                        string ctxFile = Path.Combine(folderPath, ".context.md");
-                        string ctxFileAlt = Path.Combine(folderPath, "context.md");
-                        string desc = $"Files related to {rootName}.";
-                        if (File.Exists(ctxFile))
-                        {
-                            try { desc = File.ReadAllText(ctxFile).Trim(); } catch { }
-                        }
-                        else if (File.Exists(ctxFileAlt))
-                        {
-                            try { desc = File.ReadAllText(ctxFileAlt).Trim(); } catch { }
-                        }
-
-                        rawDict[rootName] = desc;
-                        FolderPaths[rootName] = folderPath;
+                        try { desc = File.ReadAllText(ctxFile).Trim(); } catch { }
                     }
+                    else if (File.Exists(ctxFileAlt))
+                    {
+                        try { desc = File.ReadAllText(ctxFileAlt).Trim(); } catch { }
+                    }
+
+                    rawDict[rootName] = desc;
+                    FolderPaths[rootName] = folderPath;
 
                     ScanRegisteredSubContexts(rootName, folderPath, folderPath, rawDict);
                 }
@@ -365,6 +366,25 @@ namespace SortiFileWpf.Core
             }
 
             if (!effectiveDict.ContainsKey("Inbox")) effectiveDict["Inbox"] = "Fallback staging area for unclassified files.";
+
+            if (!FolderPaths.ContainsKey("Inbox"))
+            {
+                string? registeredInbox = registered.FirstOrDefault(r => Path.GetFileName(r.TrimEnd('\\', '/')).Equals("Inbox", StringComparison.OrdinalIgnoreCase));
+                if (registeredInbox != null && Directory.Exists(registeredInbox))
+                {
+                    FolderPaths["Inbox"] = registeredInbox;
+                }
+                else if (!string.IsNullOrWhiteSpace(Config.WorkspaceDir))
+                {
+                    string wsInbox = Path.Combine(Config.ResolvePath(Config.WorkspaceDir), "Inbox");
+                    if (Directory.Exists(wsInbox)) FolderPaths["Inbox"] = wsInbox;
+                    else FolderPaths["Inbox"] = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Inbox");
+                }
+                else
+                {
+                    FolderPaths["Inbox"] = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Inbox");
+                }
+            }
             return effectiveDict;
         }
 
@@ -378,11 +398,6 @@ namespace SortiFileWpf.Core
 
                 string subRel = Path.GetRelativePath(baseDir, dir).Replace('\\', '/');
                 string key = $"{rootName}/{subRel}";
-
-                if (Config.LockedFolders != null && (Config.LockedFolders.Contains(key, StringComparer.OrdinalIgnoreCase) || Config.LockedFolders.Contains(name, StringComparer.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
 
                 string ctxFile = Path.Combine(dir, ".context.md");
                 string ctxFileAlt = Path.Combine(dir, "context.md");
