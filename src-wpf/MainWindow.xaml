@@ -247,7 +247,7 @@
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Changelog" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
                                         <Border Background="#FEF9C3" CornerRadius="8" Padding="6,2" Margin="8,0,0,0">
-                                            <TextBlock Text="v1.3.0" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock Text="v1.3.1" FontSize="10" FontWeight="Bold" Foreground="#854D0E"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
@@ -255,7 +255,7 @@
 
                             <!-- Floating Bottom Action (Stays pinned at bottom no matter the scroll) -->
                             <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,10" Background="#F8FAFC" CornerRadius="0,0,14,14">
-                                <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="0" HorizontalAlignment="Right" Click="OpenChangelogFile_Click">
+                                <Button Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="0" HorizontalAlignment="Right" Click="OpenChangelogFile_Click" ToolTip="Open local changelog.txt in default text viewer">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <ContentPresenter/>
@@ -270,37 +270,37 @@
 
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <StackPanel Margin="16,14">
-                                    <TextBlock Text="✨ Recent Changes in v1.3.0" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
+                                    <TextBlock Text="✨ Recent Changes in v1.3.1" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10"/>
 
-                                    <!-- Recent Change 1: Registered Folders Architecture -->
+                                    <!-- Recent Change 1: Local Changelog Integration -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🌲 Registered Folders Architecture (Workspace Decoupled)" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="📄 Local Changelog File Viewer &amp; Packaging" FontSize="11" FontWeight="Bold" Foreground="#2563EB"/>
+                                            <TextBlock Text="Updated 'View full changelog history' to open the local changelog.txt directly in the system text editor with automated build output packaging." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Recent Change 2: Registered Folders Architecture -->
+                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="🌲 Registered Folders Architecture (Workspace Decoupled)" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
                                             <TextBlock Text="Removed centralized Workspace folder dependency. SortiFile now directly manages explicitly registered folders located anywhere on your drives without copying files." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 2: Duplicate Folder Validation Checker -->
+                                    <!-- Recent Change 3: Duplicate Folder Validation Checker -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                         <StackPanel>
-                                            <TextBlock Text="🛡️ Duplicate Folder Validation Checker" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                            <TextBlock Text="🛡️ Duplicate Folder Validation Checker" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
                                             <TextBlock Text="Built-in validation checks in both Setup Wizard and Folders tab preventing duplicate folder registrations, surfacing dedicated custom modal alerts." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- Recent Change 3: Reset Folder Tree with Typed Confirmation -->
-                                    <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-                                        <StackPanel>
-                                            <TextBlock Text="🗑️ Folder Tree Reset with Typed Confirmation" FontSize="11" FontWeight="Bold" Foreground="#8B5CF6"/>
-                                            <TextBlock Text="Added Settings option to unregister all folders from the tree requiring explicit typed 'confirm' verification. All files and directories on disk remain completely safe." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <!-- Recent Change 4: Desktop Defaults & Streamlined Setup -->
+                                    <!-- Recent Change 4: Reset Folder Tree with Typed Confirmation -->
                                     <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                                         <StackPanel>
-                                            <TextBlock Text="🖥️ Desktop Defaults &amp; Streamlined Setup Wizard" FontSize="11" FontWeight="Bold" Foreground="#D97706"/>
-                                            <TextBlock Text="Default watch and generated folders now target the Desktop. Removed redundant storage cards in wizard and settings for a clean user flow." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            <TextBlock Text="🗑️ Folder Tree Reset with Typed Confirmation" FontSize="11" FontWeight="Bold" Foreground="#DC2626"/>
+                                            <TextBlock Text="Added Settings option to unregister all folders from the tree requiring explicit typed 'confirm' verification. All files and directories on disk remain completely safe." FontSize="10" Foreground="#64748B" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>

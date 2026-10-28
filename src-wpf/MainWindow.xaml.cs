@@ -2925,15 +2925,42 @@ namespace SortiFileWpf
         {
             try
             {
+                string localChangelog = "";
+                string[] candidates = new[]
+                {
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "changelog.txt"),
+                    Path.GetFullPath("changelog.txt"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "changelog.txt"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "changelog.txt")
+                };
+
+                foreach (var path in candidates)
+                {
+                    if (File.Exists(path))
+                    {
+                        localChangelog = Path.GetFullPath(path);
+                        break;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(localChangelog))
+                {
+                    localChangelog = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "changelog.txt");
+                    if (!File.Exists(localChangelog))
+                    {
+                        File.WriteAllText(localChangelog, "SortiFile Changelog\n===================\n\nNo local changelog file found.\n");
+                    }
+                }
+
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://github.com/Pinnaclebc/SortiFile/blob/main/changelog.txt",
+                    FileName = localChangelog,
                     UseShellExecute = true
                 });
             }
             catch (Exception ex)
             {
-                CustomDialog.Show(this, "Error", $"Could not open changelog file:\n{ex.Message}");
+                CustomDialog.Show(this, "Error", $"Could not open local changelog file:\n{ex.Message}");
             }
         }
 
