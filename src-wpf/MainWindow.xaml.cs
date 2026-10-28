@@ -34,6 +34,8 @@ namespace SortiFileWpf
         public ObservableCollection<SortRecord> AllHistoryRecords { get; } = new();
         public ObservableCollection<FolderInfo> FolderItems { get; } = new();
         public ObservableCollection<FolderFileItem> SelectedFolderFiles { get; } = new();
+        private FolderInfo? _anchorFolder;
+        private List<FolderInfo> _multiSelectedFolders = new();
 
         public MainWindow()
         {
@@ -126,7 +128,6 @@ namespace SortiFileWpf
         private void InitSettingsView()
         {
             TxtWatchDir.Text = _engine.Config.WatchDir;
-            TxtWorkspaceDir.Text = _engine.Config.WorkspaceDir;
             TxtOllamaHost.Text = _engine.Config.OllamaHost;
             SliderThreshold.Value = _engine.Config.ConfidenceThreshold;
             TxtThresholdVal.Text = $"{_engine.Config.ConfidenceThreshold}%";
@@ -975,6 +976,42 @@ namespace SortiFileWpf
         {
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
             {
+                if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                {
+                    var anchor = _anchorFolder ?? _selectedFolder ?? folder;
+                    int idx1 = FolderItems.IndexOf(anchor);
+                    int idx2 = FolderItems.IndexOf(folder);
+                    if (idx1 >= 0 && idx2 >= 0)
+                    {
+                        int start = Math.Min(idx1, idx2);
+                        int end = Math.Max(idx1, idx2);
+
+                        _multiSelectedFolders.Clear();
+                        for (int i = 0; i < FolderItems.Count; i++)
+                        {
+                            bool inRange = (i >= start && i <= end && !FolderItems[i].IsHiddenByParent);
+                            FolderItems[i].IsSelected = inRange;
+                            if (inRange)
+                            {
+                                _multiSelectedFolders.Add(FolderItems[i]);
+                            }
+                        }
+
+                        if (_multiSelectedFolders.Count > 1)
+                        {
+                            TxtOverviewFolderName.Text = $"{_multiSelectedFolders.Count} Folders Selected";
+                            TxtOverviewCountBadge.Text = $"{_multiSelectedFolders.Sum(f => f.FileCount)} files total";
+                            TxtOverviewContext.Text = "Multiple folders highlighted. Right-click any highlighted folder to Delete, Lock, or Change Color in bulk.";
+                            BtnOverviewDelete.Visibility = Visibility.Visible;
+                            BtnOverviewLock.Content = "🔒 Lock / Unlock Selected";
+                            return;
+                        }
+                    }
+                }
+
+                _anchorFolder = folder;
+                _multiSelectedFolders.Clear();
+                _multiSelectedFolders.Add(folder);
                 SelectFolder(folder);
             }
         }
@@ -983,9 +1020,176 @@ namespace SortiFileWpf
         {
             if (sender is FrameworkElement elem && elem.Tag is FolderInfo folder)
             {
+                var selectedList = FolderItems.Where(f => f.IsSelected && !f.IsHiddenByParent).ToList();
+                if (selectedList.Count > 1 && selectedList.Contains(folder))
+                {
+                    OpenMultiFolderOptionsPopup(selectedList, elem);
+                    e.Handled = true;
+                    return;
+                }
+
+                _anchorFolder = folder;
+                _multiSelectedFolders.Clear();
+                _multiSelectedFolders.Add(folder);
                 SelectFolder(folder);
                 OpenFolderOptionsPopup(folder, elem, isRightClick: true);
                 e.Handled = true;
+            }
+        }
+
+        private void OpenMultiFolderOptionsPopup(List<FolderInfo> selectedFolders, FrameworkElement targetElem)
+        {
+            _multiSelectedFolders = selectedFolders;
+            TxtMultiPopupTitle.Text = $"{selectedFolders.Count} Folders Selected";
+
+            bool allLocked = selectedFolders.All(f => f.IsLocked);
+            TxtMultiLockIcon.Text = allLocked ? "🔓" : "🔒";
+            TxtMultiLockText.Text = allLocked ? "Unlock All Selected (Include)" : "Lock All Selected (Exclude)";
+
+            PopulateMultiPopupColors(selectedFolders);
+
+            MultiFolderOptionsPopup.PlacementTarget = targetElem;
+            MultiFolderOptionsPopup.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            MultiFolderOptionsPopup.IsOpen = true;
+        }
+
+        private void PopulateMultiPopupColors(List<FolderInfo> selectedFolders)
+        {
+            PanelMultiColorPalette.Children.Clear();
+            var colorOptions = new[]
+            {
+                ("#FBC305", "SortiFile Gold (Brand)"),
+                ("#3B82F6", "Blue"),
+                ("#8B5CF6", "Purple"),
+                ("#10B981", "Green"),
+                ("#F43F5E", "Rose"),
+                ("#F59E0B", "Amber"),
+                ("#06B6D4", "Cyan"),
+                ("#6366F1", "Indigo"),
+                ("#64748B", "Slate")
+            };
+
+            foreach (var (hex, cName) in colorOptions)
+            {
+                var circleBorder = new Border
+                {
+                    Width = 20,
+                    Height = 20,
+                    CornerRadius = new CornerRadius(10),
+                    Background = (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!,
+                    Margin = new Thickness(0, 0, 5, 4),
+                    Cursor = Cursors.Hand,
+                    ToolTip = cName
+                };
+
+                circleBorder.MouseDown += (s, ev) =>
+                {
+                    MultiFolderOptionsPopup.IsOpen = false;
+                    if (_engine.Config.FolderColors == null)
+                        _engine.Config.FolderColors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var folder in selectedFolders)
+                    {
+                        UpdateFolderAndChildrenColor(folder, hex);
+                        _engine.Config.FolderColors[folder.RelativePath] = hex;
+                        _engine.Config.FolderColors[folder.Name] = hex;
+                    }
+
+                    _engine.Config.Save();
+                    if (_selectedFolder != null && selectedFolders.Contains(_selectedFolder))
+                    {
+                        BadgeFolderOverview.Background = _selectedFolder.ColorBrush;
+                        PopulateOverviewColors(_selectedFolder);
+                    }
+                    ShowNotificationToast("Colors Updated", $"Updated color theme for {selectedFolders.Count} folders.", "🎨", 3000);
+                };
+
+                PanelMultiColorPalette.Children.Add(circleBorder);
+            }
+        }
+
+        private void MultiPopupToggleLock_Click(object sender, RoutedEventArgs e)
+        {
+            MultiFolderOptionsPopup.IsOpen = false;
+            if (_multiSelectedFolders == null || _multiSelectedFolders.Count == 0) return;
+
+            bool allLocked = _multiSelectedFolders.All(f => f.IsLocked);
+            bool targetLockState = !allLocked;
+
+            if (_engine.Config.LockedFolders == null)
+                _engine.Config.LockedFolders = new List<string>();
+
+            foreach (var folder in _multiSelectedFolders)
+            {
+                folder.IsLocked = targetLockState;
+                string rel = folder.RelativePath;
+                if (targetLockState)
+                {
+                    if (!_engine.Config.LockedFolders.Contains(rel, StringComparer.OrdinalIgnoreCase))
+                        _engine.Config.LockedFolders.Add(rel);
+                }
+                else
+                {
+                    _engine.Config.LockedFolders.RemoveAll(x => x.Equals(rel, StringComparison.OrdinalIgnoreCase) || x.Equals(folder.Name, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+
+            _engine.Config.Save();
+            ShowNotificationToast("Lock Status Updated", $"{(targetLockState ? "Locked" : "Unlocked")} {_multiSelectedFolders.Count} folders.", targetLockState ? "🔒" : "🔓", 3000);
+        }
+
+        private void MultiPopupDelete_Click(object sender, RoutedEventArgs e)
+        {
+            MultiFolderOptionsPopup.IsOpen = false;
+            if (_multiSelectedFolders == null || _multiSelectedFolders.Count == 0) return;
+
+            var deletable = _multiSelectedFolders.Where(f => !f.Name.Equals("Inbox", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (deletable.Count == 0)
+            {
+                CustomDialog.Show(this, "Cannot Delete", "The Inbox staging folder cannot be deleted.");
+                return;
+            }
+
+            bool confirm = CustomDialog.Confirm(
+                this,
+                "Confirm Bulk Folder Deletion",
+                $"Are you sure you want to delete these {deletable.Count} folders?\n\nAll contained files will be safely moved to Inbox.",
+                isDestructive: true,
+                confirmBtnText: "Delete Folders");
+
+            if (!confirm) return;
+
+            try
+            {
+                string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
+                string inbox = Path.Combine(ws, "Inbox");
+                if (!Directory.Exists(inbox)) Directory.CreateDirectory(inbox);
+
+                int migratedFiles = 0;
+                foreach (var folder in deletable)
+                {
+                    if (Directory.Exists(folder.FullPath))
+                    {
+                        var files = Directory.GetFiles(folder.FullPath, "*", SearchOption.AllDirectories)
+                            .Where(f => !Path.GetFileName(f).Equals(".context.md", StringComparison.OrdinalIgnoreCase) && !Path.GetFileName(f).Equals("context.md", StringComparison.OrdinalIgnoreCase));
+
+                        foreach (var file in files)
+                        {
+                            var (success, _, _) = FileMover.MoveFile(file, inbox);
+                            if (success) migratedFiles++;
+                        }
+
+                        try { Directory.Delete(folder.FullPath, true); } catch { }
+                    }
+                }
+
+                RefreshFolders();
+                UpdateStats();
+                CustomDialog.Show(this, "Folders Deleted", $"Deleted {deletable.Count} folders. {migratedFiles} files safely preserved in Inbox.");
+            }
+            catch (Exception ex)
+            {
+                CustomDialog.Show(this, "Error", $"Failed to delete folders:\n{ex.Message}");
             }
         }
 
@@ -1984,70 +2188,35 @@ namespace SortiFileWpf
             }
         }
 
-        private void ChangeWorkspaceDir_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new OpenFolderDialog
-            {
-                Title = "Select New Workspace Destination Directory",
-                InitialDirectory = Directory.Exists(_engine.Config.ResolvePath(_engine.Config.WorkspaceDir))
-                    ? _engine.Config.ResolvePath(_engine.Config.WorkspaceDir)
-                    : Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                string chosenPath = dlg.FolderName;
-                if (string.IsNullOrWhiteSpace(chosenPath)) return;
-
-                bool confirm = CustomDialog.Confirm(
-                    this,
-                    "Confirm Workspace Directory Change",
-                    $"Are you sure you want to change the Workspace Folder to:\n\n{chosenPath}\n\nSortiFile will organize files into subfolders here and reload taxonomy contexts from this location.",
-                    confirmBtnText: "Update Workspace");
-
-                if (confirm)
-                {
-                    _engine.Config.WorkspaceDir = chosenPath;
-                    TxtWorkspaceDir.Text = chosenPath;
-                    _engine.Config.Save();
-                    RefreshFolders();
-                    CustomDialog.Show(this, "Directory Updated", $"Workspace Directory updated successfully to:\n{chosenPath}");
-                }
-            }
-        }
-
         private void ResetDirectories_Click(object sender, RoutedEventArgs e)
         {
             bool confirm = CustomDialog.Confirm(
                 this,
-                "Reset Directory Configuration",
-                "Are you sure you want to reset directory configurations back to factory defaults?\n\n" +
-                "• Incoming Watch Directory: Watch_Folder\n" +
-                "• Target Workspace Directory: SortiFile_Workspace\n\n" +
-                "SortiFile will restart monitoring the default incoming folder and refresh target workspace folders.",
+                "Reset Watch Directory",
+                "Are you sure you want to reset the incoming watch directory back to factory default?\n\n" +
+                "• Incoming Watch Directory: Watch_Folder\n\n" +
+                "SortiFile will restart monitoring the default incoming folder.",
                 isDestructive: false,
-                confirmBtnText: "Reset to Defaults");
+                confirmBtnText: "Reset to Default");
 
             if (confirm)
             {
                 try
                 {
                     _engine.Config.WatchDir = "Watch_Folder";
-                    _engine.Config.WorkspaceDir = "SortiFile_Workspace";
                     _engine.Config.Save();
 
                     _engine.EnsureWorkspaceStructure();
                     _engine.RestartWatcher();
 
                     TxtWatchDir.Text = _engine.Config.WatchDir;
-                    TxtWorkspaceDir.Text = _engine.Config.WorkspaceDir;
                     RefreshFolders();
 
-                    ShowNotificationToast("Directories Reset", "Watch and Workspace directories reset to defaults.", "↺", 3500);
+                    ShowNotificationToast("Watch Directory Reset", "Incoming watch directory reset to default.", "↺", 3500);
                 }
                 catch (Exception ex)
                 {
-                    CustomDialog.Show(this, "Reset Error", $"Failed to reset directories:\n{ex.Message}");
+                    CustomDialog.Show(this, "Reset Error", $"Failed to reset watch directory:\n{ex.Message}");
                 }
             }
         }
@@ -2330,57 +2499,205 @@ namespace SortiFileWpf
             OpenInExplorer(btn.Tag.ToString()!);
         }
 
+        private void ClearSortHistory_Click(object sender, RoutedEventArgs e)
+        {
+            int undoableCount = AllHistoryRecords.Count(r => r.Status == "moved" && File.Exists(r.DestinationPath));
+            string reminder = undoableCount > 0
+                ? $"\n\n⚠️ Reminder: There {(undoableCount == 1 ? "is" : "are")} still {undoableCount} action{(undoableCount == 1 ? "" : "s")} possible to undo, which will no longer be available when sorting history is cleared."
+                : "\n\nThere are currently no undoable actions in history.";
+
+            bool confirmed = CustomDialog.Confirm(
+                this,
+                "Clear Sorting History",
+                $"Are you sure you want to clear the entire sorting history?{reminder}",
+                isDestructive: true,
+                confirmBtnText: "Clear History");
+
+            if (confirmed)
+            {
+                _engine.History.ClearHistory();
+                AllHistoryRecords.Clear();
+                RecentRecords.Clear();
+                UpdateStats();
+                ShowNotificationToast("History Cleared", "Sorting history and audit logs have been reset.", "🗑️", 3000);
+            }
+        }
+
         private void AddFolder_Click(object sender, RoutedEventArgs e)
         {
+            var choiceDlg = new AddFolderChoiceDialog { Owner = this };
+            if (choiceDlg.ShowDialog() != true) return;
+
             string ws = _engine.Config.ResolvePath(_engine.Config.WorkspaceDir);
-            var dlg = new CreateFolderDialog(ws, _selectedFolder);
-            dlg.Owner = this;
-            if (dlg.ShowDialog() == true)
+
+            if (choiceDlg.IsCreateNew)
             {
-                string folderName = dlg.FolderName;
-                if (string.IsNullOrWhiteSpace(folderName)) return;
-
-                char[] invalidChars = Path.GetInvalidFileNameChars();
-                if (folderName.IndexOfAny(invalidChars) >= 0)
+                var dlg = new CreateFolderDialog(ws, _selectedFolder) { Owner = this };
+                if (dlg.ShowDialog() == true)
                 {
-                    CustomDialog.Show(this, "Invalid Name", "The folder name contains invalid characters.");
-                    return;
-                }
+                    string folderName = dlg.FolderName;
+                    if (string.IsNullOrWhiteSpace(folderName)) return;
 
-                string baseDir = (dlg.CreateAsSubFolder && _selectedFolder != null && Directory.Exists(_selectedFolder.FullPath))
-                    ? _selectedFolder.FullPath
-                    : ws;
-
-                string targetPath = Path.Combine(baseDir, folderName);
-
-                if (Directory.Exists(targetPath))
-                {
-                    CustomDialog.Show(this, "Already Exists", $"Folder '{folderName}' already exists at this location.");
-                    return;
-                }
-
-                try
-                {
-                    Directory.CreateDirectory(targetPath);
-                    string defaultCtx = $"# {folderName} Context\n\nFiles and documents relevant to {folderName}.\n";
-                    File.WriteAllText(Path.Combine(targetPath, ".context.md"), defaultCtx);
-
-                    RefreshFolders();
-                    UpdateStats();
-
-                    var created = FolderItems.FirstOrDefault(f => f.FullPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase));
-                    if (created != null)
+                    char[] invalidChars = Path.GetInvalidFileNameChars();
+                    if (folderName.IndexOfAny(invalidChars) >= 0)
                     {
-                        SelectFolder(created);
+                        CustomDialog.Show(this, "Invalid Name", "The folder name contains invalid characters.");
+                        return;
                     }
 
-                    CustomDialog.Show(this, "Folder Created", $"Folder '{folderName}' created successfully.");
-                }
-                catch (Exception ex)
-                {
-                    CustomDialog.Show(this, "Error", $"Failed to create folder:\n{ex.Message}");
+                    string baseDir = !string.IsNullOrWhiteSpace(dlg.CustomLocationPath)
+                        ? dlg.CustomLocationPath
+                        : ((dlg.CreateAsSubFolder && _selectedFolder != null && Directory.Exists(_selectedFolder.FullPath))
+                            ? _selectedFolder.FullPath
+                            : ws);
+
+                    string targetPath = Path.Combine(baseDir, folderName);
+
+                    if (Directory.Exists(targetPath))
+                    {
+                        CustomDialog.Show(this, "Already Exists", $"Folder '{folderName}' already exists at this location.");
+                        return;
+                    }
+
+                    try
+                    {
+                        Directory.CreateDirectory(targetPath);
+                        string ctxContent = dlg.ContextPrompt;
+                        if (!ctxContent.StartsWith("#"))
+                        {
+                            ctxContent = $"# {folderName} Context\n\n{ctxContent}\n";
+                        }
+                        File.WriteAllText(Path.Combine(targetPath, ".context.md"), ctxContent);
+
+                        RefreshFolders();
+                        UpdateStats();
+
+                        var created = FolderItems.FirstOrDefault(f => f.FullPath.Equals(targetPath, StringComparison.OrdinalIgnoreCase));
+                        if (created != null)
+                        {
+                            SelectFolder(created);
+                        }
+
+                        CustomDialog.Show(this, "Folder Created", $"Folder '{folderName}' created successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomDialog.Show(this, "Error", $"Failed to create folder:\n{ex.Message}");
+                    }
                 }
             }
+            else
+            {
+                AddExistingFolderWorkflow(ws);
+            }
+        }
+
+        private void AddExistingFolderWorkflow(string ws)
+        {
+            var dlg = new OpenFolderDialog
+            {
+                Title = "Select Existing Folder to Add to SortiFile",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+            };
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.FolderName)) return;
+
+            string sourceDir = dlg.FolderName;
+            string folderName = Path.GetFileName(sourceDir);
+            if (string.IsNullOrWhiteSpace(folderName)) folderName = sourceDir;
+
+            string ctxPath1 = Path.Combine(sourceDir, ".context.md");
+            string ctxPath2 = Path.Combine(sourceDir, "context.md");
+            string existingCtx = "";
+            bool hasDetectedContext = false;
+
+            if (File.Exists(ctxPath1))
+            {
+                try { existingCtx = File.ReadAllText(ctxPath1); hasDetectedContext = true; } catch { }
+            }
+            else if (File.Exists(ctxPath2))
+            {
+                try { existingCtx = File.ReadAllText(ctxPath2); hasDetectedContext = true; } catch { }
+            }
+
+            if (string.IsNullOrWhiteSpace(existingCtx))
+            {
+                existingCtx = $"# {folderName} Context\n\nFiles and documents relevant to {folderName}.\n";
+            }
+
+            var editDlg = new ContextEditDialog(folderName, existingCtx, isDetected: hasDetectedContext) { Owner = this };
+            if (editDlg.ShowDialog() != true) return;
+
+            try
+            {
+                string updatedCtx = editDlg.ContextText;
+                if (string.IsNullOrWhiteSpace(updatedCtx))
+                {
+                    updatedCtx = $"# {folderName} Context\n\nFiles and documents relevant to {folderName}.\n";
+                }
+                File.WriteAllText(ctxPath1, updatedCtx);
+            }
+            catch { }
+
+            // Subfolder check
+            try
+            {
+                var allSubdirs = Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories);
+                var subdirsMissingContext = new List<string>();
+
+                foreach (var sub in allSubdirs)
+                {
+                    string sc1 = Path.Combine(sub, ".context.md");
+                    string sc2 = Path.Combine(sub, "context.md");
+                    if (!File.Exists(sc1) && !File.Exists(sc2))
+                    {
+                        subdirsMissingContext.Add(sub);
+                    }
+                }
+
+                if (subdirsMissingContext.Count > 0)
+                {
+                    var subDlg = new SubfolderContextDialog(sourceDir, subdirsMissingContext) { Owner = this };
+                    if (subDlg.ShowDialog() == true)
+                    {
+                        foreach (var kvp in subDlg.ContextResults)
+                        {
+                            try
+                            {
+                                string targetCtxFile = Path.Combine(kvp.Key, ".context.md");
+                                File.WriteAllText(targetCtxFile, kvp.Value);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            // Put/integrate into SortiFile
+            string parentTarget = (_selectedFolder != null && Directory.Exists(_selectedFolder.FullPath))
+                ? _selectedFolder.FullPath
+                : ws;
+
+            string destPath = Path.Combine(parentTarget, folderName);
+            if (!sourceDir.Equals(destPath, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (!Directory.Exists(destPath))
+                    {
+                        CopyDirectoryRecursive(sourceDir, destPath);
+                    }
+                }
+                catch { }
+            }
+
+            RefreshFolders();
+            UpdateStats();
+
+            var added = FolderItems.FirstOrDefault(f => f.FullPath.Equals(destPath, StringComparison.OrdinalIgnoreCase) || f.FullPath.Equals(sourceDir, StringComparison.OrdinalIgnoreCase));
+            if (added != null) SelectFolder(added);
+
+            CustomDialog.Show(this, "Folder Added", $"Folder '{folderName}' and its taxonomy context are now active in SortiFile.");
         }
 
         // ==================== CHANGELOG & GITHUB ====================
@@ -2463,7 +2780,6 @@ namespace SortiFileWpf
             }
 
             _engine.Config.WatchDir = TxtWatchDir.Text.Trim();
-            _engine.Config.WorkspaceDir = TxtWorkspaceDir.Text.Trim();
             _engine.Config.OllamaHost = TxtOllamaHost.Text.Trim();
             _engine.Config.OllamaModel = selectedModel;
             _engine.Config.ConfidenceThreshold = (int)SliderThreshold.Value;
@@ -2779,19 +3095,185 @@ namespace SortiFileWpf
         }
     }
 
-    // ==================== MODERN CREATE FOLDER DIALOG (OPT-OUT SUBFOLDER) ====================
+    // ==================== MODERN ADD FOLDER CHOICE DIALOG ====================
+
+    public class AddFolderChoiceDialog : Window
+    {
+        public bool IsCreateNew { get; private set; } = true;
+
+        public AddFolderChoiceDialog()
+        {
+            Title = "Add Folder to SortiFile";
+            WindowStyle = WindowStyle.None;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ShowInTaskbar = false;
+            Width = 490;
+            SizeToContent = SizeToContent.Height;
+            FontFamily = (FontFamily)Application.Current.FindResource("IosFontFamily");
+            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
+            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
+
+            var outerGrid = new Grid { Margin = new Thickness(24) };
+
+            var card = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(24),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 32,
+                    ShadowDepth = 6,
+                    Direction = 270,
+                    Color = Color.FromRgb(0x0F, 0x17, 0x2A),
+                    Opacity = 0.20
+                }
+            };
+
+            var stack = new StackPanel();
+
+            var titleBlock = new TextBlock
+            {
+                Text = "Add Target Folder 📁",
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            stack.Children.Add(titleBlock);
+
+            var subtitleBlock = new TextBlock
+            {
+                Text = "Choose whether to create a new taxonomy folder or register an existing directory from your drive.",
+                FontSize = 11.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 16)
+            };
+            stack.Children.Add(subtitleBlock);
+
+            // Option 1: Create New Folder
+            var cardNew = CreateCard("✨", "Create New Folder", "Specify a new folder name, target location, and mandatory .context.md AI classification prompt.");
+            cardNew.MouseDown += (s, e) =>
+            {
+                IsCreateNew = true;
+                DialogResult = true;
+                Close();
+            };
+            stack.Children.Add(cardNew);
+
+            // Option 2: Add Existing Folder
+            var cardExisting = CreateCard("📂", "Add Existing Folder", "Select an existing folder from your PC. SortiFile will inspect its .context.md and scan all subfolders.");
+            cardExisting.MouseDown += (s, e) =>
+            {
+                IsCreateNew = false;
+                DialogResult = true;
+                Close();
+            };
+            stack.Children.Add(cardExisting);
+
+            var btnCancel = new Button
+            {
+                Content = "Cancel",
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                Padding = new Thickness(16, 7, 16, 7),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 12, 0, 0),
+                Cursor = Cursors.Hand
+            };
+            btnCancel.Click += (s, e) => { DialogResult = false; Close(); };
+            stack.Children.Add(btnCancel);
+
+            card.Child = stack;
+            outerGrid.Children.Add(card);
+            Content = outerGrid;
+            KeyDown += (s, e) => { if (e.Key == Key.Escape) { DialogResult = false; Close(); } };
+        }
+
+        private Border CreateCard(string icon, string title, string description)
+        {
+            var b = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14, 10, 14, 10),
+                Margin = new Thickness(0, 0, 0, 8),
+                Cursor = Cursors.Hand
+            };
+
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var iconBlock = new TextBlock
+            {
+                Text = icon,
+                FontSize = 20,
+                Margin = new Thickness(0, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(iconBlock, 0);
+            g.Children.Add(iconBlock);
+
+            var sp = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            sp.Children.Add(new TextBlock
+            {
+                Text = title,
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A))
+            });
+            sp.Children.Add(new TextBlock
+            {
+                Text = description,
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+            Grid.SetColumn(sp, 1);
+            g.Children.Add(sp);
+
+            b.MouseEnter += (s, e) =>
+            {
+                b.Background = new SolidColorBrush(Color.FromRgb(0xFE, 0xFD, 0xEB));
+                b.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFB, 0xC3, 0x05));
+            };
+            b.MouseLeave += (s, e) =>
+            {
+                b.Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC));
+                b.BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0));
+            };
+
+            b.Child = g;
+            return b;
+        }
+    }
+
+    // ==================== MODERN CREATE FOLDER DIALOG (MANDATORY CONTEXT) ====================
 
     public class CreateFolderDialog : Window
     {
         private readonly TextBox _textBox;
+        private readonly TextBox _txtContext;
         private readonly RadioButton? _rbRoot;
         private readonly RadioButton? _rbSub;
+        private readonly RadioButton _rbCustom;
         private readonly TextBlock _pathPreview;
         private readonly string _wsRoot;
         private readonly FolderInfo? _selectedFolder;
+        private string _customLocationPath = "";
 
         public string FolderName => _textBox.Text.Trim();
+        public string ContextPrompt => _txtContext.Text.Trim();
         public bool CreateAsSubFolder => _rbSub != null && _rbSub.IsChecked == true;
+        public string CustomLocationPath => _rbCustom.IsChecked == true ? _customLocationPath : "";
 
         public CreateFolderDialog(string wsRoot, FolderInfo? selectedFolder)
         {
@@ -2799,8 +3281,8 @@ namespace SortiFileWpf
             _selectedFolder = selectedFolder;
 
             Title = "Create New Folder";
-            Width = 480;
-            Height = selectedFolder != null ? 300 : 230;
+            Width = 500;
+            SizeToContent = SizeToContent.Height;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
             Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC));
@@ -2816,7 +3298,7 @@ namespace SortiFileWpf
                 FontSize = 13,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
-                Margin = new Thickness(0, 0, 0, 8)
+                Margin = new Thickness(0, 0, 0, 6)
             };
             sp.Children.Add(titleBlock);
 
@@ -2831,59 +3313,123 @@ namespace SortiFileWpf
             };
             sp.Children.Add(_textBox);
 
+            var locLabel = new TextBlock
+            {
+                Text = "DESTINATION LOCATION",
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            sp.Children.Add(locLabel);
+
+            var radioPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+
+            _rbRoot = new RadioButton
+            {
+                Content = "📁 Root Workspace",
+                IsChecked = true,
+                FontSize = 11.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
+                Margin = new Thickness(0, 0, 14, 4),
+                Cursor = Cursors.Hand
+            };
+            _rbRoot.Checked += (s, e) => UpdatePreview();
+            radioPanel.Children.Add(_rbRoot);
+
             if (_selectedFolder != null)
             {
-                var locLabel = new TextBlock
-                {
-                    Text = "DESTINATION LOCATION",
-                    FontSize = 10,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
-                    Margin = new Thickness(0, 0, 0, 6)
-                };
-                sp.Children.Add(locLabel);
-
-                var radioPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
-
-                _rbRoot = new RadioButton
-                {
-                    Content = "📁 Root Folder",
-                    IsChecked = true,
-                    FontSize = 12,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
-                    Margin = new Thickness(0, 0, 18, 0),
-                    Cursor = Cursors.Hand
-                };
-
                 _rbSub = new RadioButton
                 {
-                    Content = $"↳ Sub-folder inside '{_selectedFolder.Name}'",
+                    Content = $"↳ Sub-folder in '{_selectedFolder.Name}'",
                     IsChecked = false,
-                    FontSize = 12,
+                    FontSize = 11.5,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
+                    Margin = new Thickness(0, 0, 14, 4),
                     Cursor = Cursors.Hand
                 };
-
-                _rbRoot.Checked += (s, e) => UpdatePreview();
                 _rbSub.Checked += (s, e) => UpdatePreview();
-
-                radioPanel.Children.Add(_rbRoot);
                 radioPanel.Children.Add(_rbSub);
-                sp.Children.Add(radioPanel);
             }
+
+            _rbCustom = new RadioButton
+            {
+                Content = "📍 Custom Location...",
+                IsChecked = false,
+                FontSize = 11.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x1E, 0x29, 0x3B)),
+                Margin = new Thickness(0, 0, 14, 4),
+                Cursor = Cursors.Hand
+            };
+            _rbCustom.Checked += (s, e) =>
+            {
+                var pickDlg = new OpenFolderDialog
+                {
+                    Title = "Select Custom Target Folder Location",
+                    InitialDirectory = _wsRoot
+                };
+                if (pickDlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(pickDlg.FolderName))
+                {
+                    _customLocationPath = pickDlg.FolderName;
+                }
+                else if (string.IsNullOrWhiteSpace(_customLocationPath))
+                {
+                    _rbRoot.IsChecked = true;
+                }
+                UpdatePreview();
+            };
+            radioPanel.Children.Add(_rbCustom);
+            sp.Children.Add(radioPanel);
 
             _pathPreview = new TextBlock
             {
-                FontSize = 11,
+                FontSize = 10.5,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(0, 0, 0, 16)
+                Margin = new Thickness(0, 0, 0, 12)
             };
             sp.Children.Add(_pathPreview);
 
-            _textBox.TextChanged += (s, e) => UpdatePreview();
+            // Mandatory .context.md prompt
+            var ctxLabel = new TextBlock
+            {
+                Text = "TAXONOMY DESCRIPTION (.context.md prompt - MANDATORY):",
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            sp.Children.Add(ctxLabel);
+
+            _txtContext = new TextBox
+            {
+                Height = 65,
+                FontSize = 11,
+                Padding = new Thickness(8, 6, 8, 6),
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1)),
+                Background = Brushes.White,
+                Margin = new Thickness(0, 0, 0, 16)
+            };
+            sp.Children.Add(_txtContext);
+
+            _textBox.TextChanged += (s, e) =>
+            {
+                UpdatePreview();
+                if (string.IsNullOrWhiteSpace(_txtContext.Text) || _txtContext.Text.StartsWith("Files and documents relevant to"))
+                {
+                    string nm = string.IsNullOrWhiteSpace(_textBox.Text) ? "" : _textBox.Text.Trim();
+                    if (!string.IsNullOrWhiteSpace(nm))
+                    {
+                        _txtContext.Text = $"Files and documents relevant to {nm}.";
+                    }
+                }
+            };
             UpdatePreview();
 
             var buttonPanel = new StackPanel
@@ -2906,7 +3452,7 @@ namespace SortiFileWpf
             var btnOk = new Button
             {
                 Content = "Create Folder",
-                Width = 105,
+                Width = 110,
                 Height = 32,
                 Style = (Style)Application.Current.FindResource("PrimaryBtn"),
                 IsDefault = true
@@ -2915,7 +3461,21 @@ namespace SortiFileWpf
             {
                 if (string.IsNullOrWhiteSpace(FolderName))
                 {
+                    CustomDialog.Show(this, "Folder Name Required", "Please enter a valid folder name.");
                     _textBox.Focus();
+                    return;
+                }
+                char[] invalidChars = Path.GetInvalidFileNameChars();
+                if (FolderName.IndexOfAny(invalidChars) >= 0)
+                {
+                    CustomDialog.Show(this, "Invalid Name", "The folder name contains invalid characters.");
+                    _textBox.Focus();
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(ContextPrompt))
+                {
+                    CustomDialog.Show(this, "Context Required", "Please provide a classification context for this folder (.context.md is mandatory).");
+                    _txtContext.Focus();
                     return;
                 }
                 DialogResult = true;
@@ -2931,9 +3491,16 @@ namespace SortiFileWpf
         private void UpdatePreview()
         {
             string name = string.IsNullOrWhiteSpace(_textBox.Text) ? "NewFolder" : _textBox.Text.Trim();
-            string parent = (CreateAsSubFolder && _selectedFolder != null)
-                ? _selectedFolder.FullPath
-                : _wsRoot;
+            string parent = _wsRoot;
+            if (_rbCustom.IsChecked == true && !string.IsNullOrWhiteSpace(_customLocationPath))
+            {
+                parent = _customLocationPath;
+            }
+            else if (CreateAsSubFolder && _selectedFolder != null)
+            {
+                parent = _selectedFolder.FullPath;
+            }
+
             try
             {
                 string rel = Path.GetRelativePath(_wsRoot, Path.Combine(parent, name));
@@ -2941,8 +3508,207 @@ namespace SortiFileWpf
             }
             catch
             {
-                _pathPreview.Text = $"📍 Target: {name}";
+                _pathPreview.Text = $"📍 Target: {Path.Combine(parent, name)}";
             }
+        }
+    }
+
+    // ==================== SUBFOLDERS MISSING CONTEXT POPUP DIALOG ====================
+
+    public class SubfolderContextDialog : Window
+    {
+        public Dictionary<string, string> ContextResults { get; } = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<(string subPath, TextBox txtBox)> _editors = new();
+
+        public SubfolderContextDialog(string rootDir, List<string> missingSubfolders)
+        {
+            Title = "Subfolders Missing Context";
+            WindowStyle = WindowStyle.None;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ShowInTaskbar = false;
+            Width = 560;
+            Height = 520;
+            FontFamily = (FontFamily)Application.Current.FindResource("IosFontFamily");
+            TextOptions.SetTextFormattingMode(this, TextFormattingMode.Ideal);
+            TextOptions.SetTextRenderingMode(this, TextRenderingMode.ClearType);
+
+            var outerGrid = new Grid { Margin = new Thickness(20) };
+
+            var card = new Border
+            {
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(22),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 32,
+                    ShadowDepth = 6,
+                    Direction = 270,
+                    Color = Color.FromRgb(0x0F, 0x17, 0x2A),
+                    Opacity = 0.20
+                }
+            };
+
+            var mainDock = new DockPanel { LastChildFill = true };
+
+            var headerStack = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+            headerStack.Children.Add(new TextBlock
+            {
+                Text = $"Subfolders Missing Context ({missingSubfolders.Count}) 📁",
+                FontSize = 15,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A))
+            });
+            headerStack.Children.Add(new TextBlock
+            {
+                Text = "The following subfolders do not have a .context.md file. You can enter classification prompts for each, or skip and create placeholder contexts for all.",
+                FontSize = 11,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+            DockPanel.SetDock(headerStack, Dock.Top);
+            mainDock.Children.Add(headerStack);
+
+            var btnPanel = new Grid { Margin = new Thickness(0, 14, 0, 0) };
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            btnPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var btnPlaceholder = new Button
+            {
+                Content = "⚡ Skip & Add Placeholders",
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                Padding = new Thickness(14, 7, 14, 7),
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Automatically generate placeholder .context.md files for all subfolders"
+            };
+            btnPlaceholder.Click += (s, e) =>
+            {
+                foreach (var sub in missingSubfolders)
+                {
+                    string subName = Path.GetFileName(sub);
+                    ContextResults[sub] = $"# {subName} Context\n\nFiles and documents relevant to {subName}.\n";
+                }
+                DialogResult = true;
+                Close();
+            };
+            Grid.SetColumn(btnPlaceholder, 0);
+            btnPanel.Children.Add(btnPlaceholder);
+
+            var rightActions = new StackPanel { Orientation = Orientation.Horizontal };
+
+            var btnCancel = new Button
+            {
+                Content = "Cancel",
+                Style = (Style)Application.Current.FindResource("ModernBtn"),
+                Padding = new Thickness(14, 7, 14, 7),
+                Margin = new Thickness(0, 0, 8, 0),
+                Cursor = Cursors.Hand
+            };
+            btnCancel.Click += (s, e) => { DialogResult = false; Close(); };
+            rightActions.Children.Add(btnCancel);
+
+            var btnSave = new Button
+            {
+                Content = "Save Contexts",
+                Style = (Style)Application.Current.FindResource("PrimaryBtn"),
+                Padding = new Thickness(16, 7, 16, 7),
+                Cursor = Cursors.Hand,
+                IsDefault = true
+            };
+            btnSave.Click += (s, e) =>
+            {
+                foreach (var (subPath, tb) in _editors)
+                {
+                    string val = tb.Text.Trim();
+                    string subName = Path.GetFileName(subPath);
+                    if (string.IsNullOrWhiteSpace(val))
+                    {
+                        val = $"# {subName} Context\n\nFiles and documents relevant to {subName}.\n";
+                    }
+                    else if (!val.StartsWith("#"))
+                    {
+                        val = $"# {subName} Context\n\n{val}\n";
+                    }
+                    ContextResults[subPath] = val;
+                }
+                DialogResult = true;
+                Close();
+            };
+            rightActions.Children.Add(btnSave);
+
+            Grid.SetColumn(rightActions, 1);
+            btnPanel.Children.Add(rightActions);
+
+            DockPanel.SetDock(btnPanel, Dock.Bottom);
+            mainDock.Children.Add(btnPanel);
+
+            var sv = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Padding = new Thickness(0, 0, 4, 0)
+            };
+            var itemsStack = new StackPanel();
+
+            foreach (var sub in missingSubfolders)
+            {
+                string relPath = "";
+                try { relPath = Path.GetRelativePath(rootDir, sub); } catch { relPath = sub; }
+                string subName = Path.GetFileName(sub);
+
+                var itemBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(0xF8, 0xFA, 0xFC)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(12, 8, 12, 8),
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+
+                var itemStack = new StackPanel();
+                itemStack.Children.Add(new TextBlock
+                {
+                    Text = $"📁 {relPath}",
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
+                    Margin = new Thickness(0, 0, 0, 4)
+                });
+
+                var tb = new TextBox
+                {
+                    Text = $"Files and documents relevant to {subName}.",
+                    Height = 44,
+                    FontSize = 11,
+                    AcceptsReturn = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    Padding = new Thickness(8, 4, 8, 4),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(0xCB, 0xD5, 0xE1)),
+                    Background = Brushes.White
+                };
+                itemStack.Children.Add(tb);
+                _editors.Add((sub, tb));
+
+                itemBorder.Child = itemStack;
+                itemsStack.Children.Add(itemBorder);
+            }
+
+            sv.Content = itemsStack;
+            mainDock.Children.Add(sv);
+
+            card.Child = mainDock;
+            outerGrid.Children.Add(card);
+            Content = outerGrid;
+            KeyDown += (s, e) => { if (e.Key == Key.Escape) { DialogResult = false; Close(); } };
         }
     }
 
@@ -2954,9 +3720,9 @@ namespace SortiFileWpf
 
         public string ContextText => _textBox.Text;
 
-        public ContextEditDialog(string folderName, string currentContext)
+        public ContextEditDialog(string folderName, string currentContext, bool isDetected = false)
         {
-            Title = $"Edit .context.md — {folderName}";
+            Title = isDetected ? $"Review & Edit .context.md — {folderName}" : $"Add .context.md — {folderName}";
             Width = 620;
             Height = 440;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -2973,7 +3739,7 @@ namespace SortiFileWpf
 
             var titleBlock = new TextBlock
             {
-                Text = $"Taxonomy Context for '{folderName}'",
+                Text = isDetected ? $"Detected Taxonomy Context for '{folderName}'" : $"Taxonomy Context for '{folderName}'",
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x0F, 0x17, 0x2A)),
@@ -2984,7 +3750,9 @@ namespace SortiFileWpf
 
             var descBlock = new TextBlock
             {
-                Text = "SortiFile's local AI engine uses this description to decide whether incoming files belong in this folder.",
+                Text = isDetected
+                    ? "An existing .context.md was detected. You can review or edit its classification instructions before finalizing."
+                    : "No .context.md was detected. Enter a classification prompt below so the local AI engine can route files into this folder.",
                 FontSize = 11,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x64, 0x74, 0x8B)),
                 Margin = new Thickness(0, 0, 0, 14)

@@ -78,6 +78,14 @@ namespace SortiFileWpf.Core
             return UpdateStatus(id, "reverted");
         }
 
+        public void ClearHistory()
+        {
+            lock (_lock)
+            {
+                SaveHistory(new List<SortRecord>());
+            }
+        }
+
         public bool UpdateStatus(string id, string status)
         {
             lock (_lock)
